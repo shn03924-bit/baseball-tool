@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>野球動作改善ツール - HBA</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif; background: #f5f7fa; color: #1a1a2e; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: white; padding: 20px 24px; display: flex; align-items: center; gap: 16px; }
+  .header-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+  .header p { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+  .hba-badge { margin-left: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 600; letter-spacing: 1px; }
+
+  .main { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+
+  .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+
+  .section-title { font-size: 14px; font-weight: 700; color: #0f3460; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .section-title::before { content: ''; width: 4px; height: 18px; background: #e94560; border-radius: 2px; display: inline-block; }
+
+  .motion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .motion-btn { border: 2px solid #e0e0e0; border-radius: 12px; padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; }
+  .motion-btn:hover { border-color: #0f3460; background: #f0f4ff; }
+  .motion-btn.active { border-color: #e94560; background: #fff0f3; }
+  .motion-btn .icon { font-size: 28px; margin-bottom: 6px; }
+  .motion-btn .label { font-size: 12px; font-weight: 600; color: #444; }
+  .motion-btn.active .label { color: #e94560; }
+
+  .upload-area { border: 2px dashed #c0cfe0; border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8faff; position: relative; }
+  .upload-area:hover, .upload-area.dragover { border-color: #0f3460; background: #eef3ff; }
+  .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 48px; margin-bottom: 12px; }
+  .upload-text { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 6px; }
+  .upload-sub { font-size: 12px; color: #888; }
+
+  #preview-container { display: none; margin-top: 16px; border-radius: 12px; overflow: hidden; max-height: 320px; background: #000; }
+  #preview-container img, #preview-container video { max-width: 100%; max-height: 320px; object-fit: contain; display: block; margin: 0 auto; }
+
+  .player-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .player-row input, .player-row select { width: 100%; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: inherit; outline: none; transition: border 0.2s; background: white; }
+  .player-row input:focus, .player-row select:focus { border-color: #0f3460; }
+  .input-label { font-size: 12px; color: #666; margin-bottom: 6px; font-weight: 600; }
+
+  .analyze-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #e94560, #c73652); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s; margin-top: 8px; }
+  .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(233,69,96,0.35); }
+  .analyze-btn:disabled { background: #ccc; transform: none; box-shadow: none; cursor: not-allowed; }
+
+  .loading { display: none; text-align: center; padding: 40px; }
+  .spinner { width: 48px; height: 48px; border: 4px solid #f0f0f0; border-top-color: #e94560; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #666; }
+
+  #result-section { display: none; }
+
+  .score-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }
+  .score-circle { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #0f3460, #16213e); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+  .score-circle .score-num { font-size: 28px; font-weight: 800; }
+  .score-circle .score-label { font-size: 9px; opacity: 0.8; }
+  .score-info h3 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .score-info p { font-size: 13px; color: #666; margin-top: 4px; line-height: 1.5; }
+
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+  .result-block { border-radius: 14px; padding: 18px; }
+  .result-block.good { background: linear-gradient(135deg, #e8f8f0, #d4f4e4); border: 1px solid #a8dcc0; }
+  .result-block.improve { background: linear-gradient(135deg, #fff8e8, #fff0c8); border: 1px solid #f0d080; }
+  .result-block h4 { font-size: 13px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .result-block.good h4 { color: #1a7a4a; }
+  .result-block.improve h4 { color: #8a5a00; }
+  .result-block ul { list-style: none; padding: 0; }
+  .result-block ul li { font-size: 13px; padding: 5px 0 5px 18px; position: relative; line-height: 1.5; border-bottom: 1px solid rgba(0,0,0,0.05); }
+  .result-block ul li:last-child { border-bottom: none; }
+  .result-block.good ul li::before { content: '✓'; position: absolute; left: 0; color: #1a7a4a; font-weight: 700; }
+  .result-block.improve ul li::before { content: '▶'; position: absolute; left: 0; color: #c07000; font-size: 10px; top: 7px; }
+
+  .drill-section h4 { font-size: 14px; font-weight: 700; color: #0f3460; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+  .drill-card { border: 1.5px solid #e8ecf4; border-radius: 12px; padding: 16px; margin-bottom: 12px; transition: border-color 0.2s; }
+  .drill-card:hover { border-color: #0f3460; }
+  .drill-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .drill-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .drill-tag { font-size: 10px; background: #e8f0ff; color: #3060c0; border-radius: 20px; padding: 3px 10px; font-weight: 600; white-space: nowrap; }
+  .drill-desc { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 10px; }
+  .drill-points { background: #f8f9ff; border-radius: 8px; padding: 10px 12px; }
+  .drill-points p { font-size: 12px; color: #666; line-height: 1.8; }
+  .drill-points strong { color: #0f3460; }
+  .youtube-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: #cc0000; font-size: 12px; font-weight: 600; text-decoration: none; background: #fff0f0; padding: 5px 12px; border-radius: 20px; border: 1px solid #ffcccc; transition: background 0.2s; }
+  .youtube-link:hover { background: #ffe0e0; }
+
+  .advice-box { background: linear-gradient(135deg, #f0f4ff, #e8efff); border: 1px solid #c0d0f0; border-radius: 14px; padding: 18px; margin-top: 16px; }
+  .advice-box h4 { font-size: 13px; font-weight: 700; color: #1a40a0; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .advice-box p { font-size: 13px; color: #444; line-height: 1.7; }
+
+  .action-row { display: flex; gap: 12px; margin-top: 20px; }
+  .action-btn { flex: 1; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; border: 2px solid; transition: all 0.2s; font-family: inherit; }
+  .action-btn.primary { background: #0f3460; color: white; border-color: #0f3460; }
+  .action-btn.primary:hover { background: #1a4a80; }
+  .action-btn.secondary { background: white; color: #0f3460; border-color: #0f3460; }
+  .action-btn.secondary:hover { background: #f0f4ff; }
+
+  .motion-tag-display { display: none; background: #fff0f3; border: 1px solid #f0b0c0; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #c03050; font-weight: 600; margin-bottom: 12px; }
+  .motion-tag-display.show { display: inline-block; }
+
+  @media (max-width: 600px) {
+    .motion-grid { grid-template-columns: repeat(2, 1fr); }
+    .player-row { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr; }
+    .action-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⚾</div>
+  <div>
+    <h1>野球動作改善ツール</h1>
+    <p>バイオメカニクス観点からAIが動作を分析・ドリル提案</p>
+  </div>
+  <div class="hba-badge">HBA</div>
+</div>
+
+<div class="main">
+
+  <div class="card">
+    <div class="section-title">STEP 1　分析する動作を選択</div>
+    <div class="motion-grid">
+      <div class="motion-btn active" data-motion="pitching" onclick="selectMotion(this)">
+        <div class="icon">🥎</div>
+        <div class="label">ピッチング</div>
+      </div>
+      <div class="motion-btn" data-motion="batting" onclick="selectMotion(this)">
+        <div class="icon">🏏</div>
+        <div class="label">バッティング</div>
+      </div>
+      <div class="motion-btn" data-motion="fielding" onclick="selectMotion(this)">
+        <div class="icon">🧤</div>
+        <div class="label">守備・スロー</div>
+      </div>
+      <div class="motion-btn" data-motion="running" onclick="selectMotion(this)">
+        <div class="icon">🏃</div>
+        <div class="label">走塁・身体操作</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">STEP 2　選手情報を入力</div>
+    <div class="player-row">
+      <div>
+        <div class="input-label">選手名</div>
+        <input type="text" id="player-name" placeholder="例：山田 太郎" />
+      </div>
+      <div>
+        <div class="input-label">学年</div>
+        <select id="player-grade">
+          <option value="">選択してください</option>
+          <option value="1">小学1年生</option>
+          <option value="2">小学2年生</option>
+          <option value="3">小学3年生</option>
+          <option value="4">小学4年生</option>
+          <option value="5">小学5年生</option>
+          <option value="6">小学6年生</option>
+          <option value="jr1">中学1年生</option>
+          <option value="jr2">中学2年生</option>
+          <option value="jr3">中学3年生</option>
+        </select>
+      </div>
+      <div>
+        <div class="input-label">利き手</div>
+        <select id="player-hand">
+          <option value="right">右利き</option>
+          <option value="left">左利き</option>
+        </select>
+      </div>
+      <div>
+        <div class="input-label">特記事項（任意）</div>
+        <input type="text" id="player-note" placeholder="例：最近リリースが高い など" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">STEP 3　動画または画像をアップロード</div>
+    <div class="upload-area" id="upload-area" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+      <input type="file" id="file-input" accept="image/*,video/*" onchange="handleFile(event)" />
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">ファイルをここにドロップ、またはクリックして選択</div>
+      <div class="upload-sub">対応形式：JPG / PNG / MP4 / MOV（最大50MB）</div>
+    </div>
+    <div id="preview-container"></div>
+    <div id="file-name-display" style="margin-top:10px; font-size:13px; color:#666; display:none;"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">STEP 4　AI分析を実行</div>
+    <div id="motion-tag-display" class="motion-tag-display"></div>
+    <button class="analyze-btn" id="analyze-btn" onclick="runAnalysis()">
+      ⚡ AIで動作を分析する
+    </button>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">バイオメカニクスデータを解析中...</div>
+  </div>
+
+  <div id="result-section">
+    <div class="card">
+      <div class="section-title">分析レポート</div>
+      <div class="score-header">
+        <div class="score-circle">
+          <div>
+            <div class="score-num" id="result-score">--</div>
+            <div class="score-label">/ 100点</div>
+          </div>
+        </div>
+        <div class="score-info">
+          <h3 id="result-title">分析結果</h3>
+          <p id="result-summary"></p>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-block good">
+          <h4>✅ 良好ポイント</h4>
+          <ul id="good-points"></ul>
+        </div>
+        <div class="result-block improve">
+          <h4>⚠️ 改善ポイント</h4>
+          <ul id="improve-points"></ul>
+        </div>
+      </div>
+
+      <div class="drill-section">
+        <h4>🏋️ 推奨ドリル</h4>
+        <div id="drills-container"></div>
+      </div>
+
+      <div class="advice-box">
+        <h4>👨‍🏫 コーチへのアドバイス</h4>
+        <p id="coach-advice"></p>
+      </div>
+
+      <div class="action-row">
+        <button class="action-btn primary" onclick="saveReport()">📄 HTMLで保存</button>
+        <button class="action-btn secondary" onclick="resetTool()">🔄 新しく分析する</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let selectedMotion = 'pitching';
+let uploadedFile = null;
+let uploadedBase64 = null;
+let currentResult = null;
+
+const motionLabels = {
+  pitching: 'ピッチング（投球）',
+  batting: 'バッティング（打撃）',
+  fielding: '守備・スローイング',
+  running: '走塁・身体操作'
+};
+
+function selectMotion(el) {
+  document.querySelectorAll('.motion-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedMotion = el.dataset.motion;
+  updateMotionTag();
+}
+
+function updateMotionTag() {
+  const tag = document.getElementById('motion-tag-display');
+  tag.textContent = '選択中：' + motionLabels[selectedMotion];
+  tag.classList.add('show');
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.add('dragover');
+}
+
+function handleDragLeave(e) {
+  document.getElementById('upload-area').classList.remove('dragover');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  uploadedFile = file;
+  const preview = document.getElementById('preview-container');
+  const nameDisplay = document.getElementById('file-name-display');
+  preview.innerHTML = '';
+  preview.style.display = 'block';
+  nameDisplay.style.display = 'block';
+  nameDisplay.textContent = '📎 ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + 'MB)';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadedBase64 = e.target.result.split(',')[1];
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      preview.appendChild(img);
+    } else if (file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.src = e.target.result;
+      video.controls = true;
+      video.style.maxWidth = '100%';
+      preview.appendChild(video);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runAnalysis() {
+  const name = document.getElementById('player-name').value || '選手';
+  const grade = document.getElementById('player-grade').options[document.getElementById('player-grade').selectedIndex].text;
+  const hand = document.getElementById('player-hand').value === 'right' ? '右利き' : '左利き';
+  const note = document.getElementById('player-note').value;
+  const motionLabel = motionLabels[selectedMotion];
+
+  updateMotionTag();
+
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('analyze-btn').disabled = true;
+
+  const loadingTexts = [
+    'バイオメカニクスデータを解析中...',
+    '関節角度・重心移動を確認中...',
+    'ドリルプランを作成中...',
+    'レポートを生成中...'
+  ];
+  let li = 0;
+  const ltimer = setInterval(() => {
+    li = (li + 1) % loadingTexts.length;
+    document.getElementById('loading-text').textContent = loadingTexts[li];
+  }, 1800);
+
+  const systemPrompt = `あなたは最先端のスポーツバイオメカニクスの専門家であり、少年野球コーチングのエキスパートです。
+小学生の野球動作を分析し、最新のバイオメカニクス知識に基づいて指導レポートを提供します。
+必ずJSON形式のみで回答してください。余計なテキストは一切出力しないでください。
+出力するJSONの構造：
+{
+  "score": 数値(0-100),
+  "title": "一言評価（例：バランスの良い投球フォーム）",
+  "summary": "2〜3文の総合評価",
+  "goodPoints": ["良好ポイント1", "良好ポイント2", "良好ポイント3"],
+  "improvePoints": ["改善ポイント1", "改善ポイント2", "改善ポイント3"],
+  "drills": [
+    {
+      "name": "ドリル名",
+      "tag": "カテゴリ（例：体幹強化、柔軟性など）",
+      "description": "ドリルの説明（2〜3文）",
+      "points": "実施ポイント（3項目）",
+      "youtubeQuery": "YouTubeで検索するキーワード（日本語）"
+    }
+  ],
+  "coachAdvice": "コーチへのアドバイス（2〜3文）"
+}`;
+
+  const userContent = [];
+
+  if (uploadedBase64 && uploadedFile && uploadedFile.type.startsWith('image/')) {
+    userContent.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: uploadedFile.type,
+        data: uploadedBase64
+      }
+    });
+  }
+
+  userContent.push({
+    type: 'text',
+    text: `選手情報：
+- 名前：${name}
+- 学年：${grade}
+- 利き手：${hand}
+- 分析対象動作：${motionLabel}
+- 特記事項：${note || 'なし'}
+
+${uploadedBase64 && uploadedFile.type.startsWith('image/') ? '上記の画像を分析してください。' : ''}
+${uploadedFile && uploadedFile.type.startsWith('video/') ? '動画ファイルがアップロードされましたが、静止画像のみ分析可能です。動作の特記事項を参考に分析を行ってください。' : ''}
+${!uploadedFile ? '画像が添付されていないため、特記事項と選手情報を元に一般的な分析を行ってください。' : ''}
+
+最新のバイオメカニクス理論に基づき、小学生に適切な指導レポートをJSONで出力してください。`
+  });
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    const data = await response.json();
+    const rawText = data.content.map(b => b.text || '').join('');
+    const clean = rawText.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    currentResult = { result, name, grade, motionLabel };
+
+    clearInterval(ltimer);
+    displayResult(result, name, motionLabel);
+
+  } catch (err) {
+    clearInterval(ltimer);
+    alert('分析中にエラーが発生しました。再度お試しください。\n' + err.message);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('analyze-btn').disabled = false;
+  }
+}
+
+function displayResult(r, name, motion) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('result-section').style.display = 'block';
+  document.getElementById('analyze-btn').disabled = false;
+
+  document.getElementById('result-score').textContent = r.score;
+  document.getElementById('result-title').textContent = name + ' さん｜' + r.title;
+  document.getElementById('result-summary').textContent = r.summary;
+
+  const goodUl = document.getElementById('good-points');
+  goodUl.innerHTML = '';
+  (r.goodPoints || []).forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = p;
+    goodUl.appendChild(li);
+  });
+
+  const impUl = document.getElementById('improve-points');
+  impUl.innerHTML = '';
+  (r.improvePoints || []).forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = p;
+    impUl.appendChild(li);
+  });
+
+  const drillContainer = document.getElementById('drills-container');
+  drillContainer.innerHTML = '';
+  (r.drills || []).forEach((d, i) => {
+    const card = document.createElement('div');
+    card.className = 'drill-card';
+    const ytUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(d.youtubeQuery + ' 少年野球');
+    card.innerHTML = `
+      <div class="drill-header">
+        <div class="drill-name">ドリル${i + 1}｜${d.name}</div>
+        <div class="drill-tag">${d.tag}</div>
+      </div>
+      <div class="drill-desc">${d.description}</div>
+      <div class="drill-points"><p><strong>実施ポイント：</strong>${d.points}</p></div>
+      <a class="youtube-link" href="${ytUrl}" target="_blank">▶ YouTubeで検索：${d.youtubeQuery}</a>
+    `;
+    drillContainer.appendChild(card);
+  });
+
+  document.getElementById('coach-advice').textContent = r.coachAdvice;
+  document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function saveReport() {
+  if (!currentResult) return;
+  const { result, name, grade, motionLabel } = currentResult;
+  const date = new Date().toLocaleDateString('ja-JP');
+  let drillsHtml = (result.drills || []).map((d, i) => `
+    <div style="border:1px solid #ddd;border-radius:10px;padding:16px;margin-bottom:12px;">
+      <b>ドリル${i+1}｜${d.name}</b><span style="background:#e8f0ff;color:#3060c0;border-radius:20px;padding:2px 10px;font-size:11px;margin-left:8px;">${d.tag}</span>
+      <p style="margin:8px 0;color:#555;">${d.description}</p>
+      <p style="background:#f8f9ff;padding:10px;border-radius:6px;font-size:12px;"><b>実施ポイント：</b>${d.points}</p>
+      <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(d.youtubeQuery + ' 少年野球')}" style="color:#cc0000;font-size:12px;">▶ YouTube検索：${d.youtubeQuery}</a>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>動作分析レポート - ${name}</title>
+  <style>body{font-family:'Hiragino Kaku Gothic Pro',sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#1a1a2e;}
+  h1{background:linear-gradient(135deg,#1a1a2e,#0f3460);color:white;padding:20px;border-radius:12px;}
+  .score{font-size:48px;font-weight:800;color:#e94560;}.meta{color:#666;font-size:14px;margin:4px 0;}
+  .block{border-radius:12px;padding:16px;margin:16px 0;}
+  .good{background:#e8f8f0;border:1px solid #a8dcc0;}.bad{background:#fff8e8;border:1px solid #f0d080;}
+  ul{margin:10px 0;padding-left:20px;}li{padding:4px 0;font-size:14px;line-height:1.6;}
+  .advice{background:#f0f4ff;border:1px solid #c0d0f0;border-radius:12px;padding:16px;}
+  </style></head><body>
+  <h1>⚾ 野球動作改善レポート</h1>
+  <p class="meta">作成日：${date}｜選手：${name}（${grade}）｜対象動作：${motionLabel}</p>
+  <p class="meta">HBA（平塚ベースボールアカデミア）</p>
+  <div style="text-align:center;margin:20px 0;">
+    <div class="score">${result.score}<span style="font-size:24px;color:#666;"> / 100</span></div>
+    <h2>${result.title}</h2>
+    <p style="color:#555;">${result.summary}</p>
+  </div>
+  <div class="block good"><h3>✅ 良好ポイント</h3><ul>${(result.goodPoints||[]).map(p=>`<li>${p}</li>`).join('')}</ul></div>
+  <div class="block bad"><h3>⚠️ 改善ポイント</h3><ul>${(result.improvePoints||[]).map(p=>`<li>${p}</li>`).join('')}</ul></div>
+  <h3>🏋️ 推奨ドリル</h3>${drillsHtml}
+  <div class="advice"><h3>👨‍🏫 コーチへのアドバイス</h3><p>${result.coachAdvice}</p></div>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `baseball_report_${name}_${date.replace(/\//g,'')}.html`;
+  a.click();
+}
+
+function resetTool() {
+  document.getElementById('result-section').style.display = 'none';
+  document.getElementById('preview-container').style.display = 'none';
+  document.getElementById('preview-container').innerHTML = '';
+  document.getElementById('file-name-display').style.display = 'none';
+  document.getElementById('player-name').value = '';
+  document.getElementById('player-note').value = '';
+  document.getElementById('file-input').value = '';
+  uploadedFile = null;
+  uploadedBase64 = null;
+  currentResult = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+updateMotionTag();
+</script>
+</body>
+</html>
