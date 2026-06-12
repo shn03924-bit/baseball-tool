@@ -3,629 +3,683 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#5B4CF5">
+  <meta name="theme-color" content="#7C3AED">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="タスク管理">
+  <meta name="apple-mobile-web-app-title" content="生活改善">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon.svg">
-  <title>タスク管理</title>
+  <title>生活改善ノート</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    :root {
-      --primary: #5B4CF5;
-      --primary-light: #EEF2FF;
-      --bg: #F3F4F6;
-      --card: #FFFFFF;
-      --text: #111827;
-      --text2: #6B7280;
-      --border: #E5E7EB;
-      --high: #EF4444;
-      --mid: #F59E0B;
-      --low: #22C55E;
-      --radius: 14px;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --purple:#7C3AED;
+      --purple-d:#6D28D9;
+      --purple-l:#EDE9FE;
+      --bg:#F5F3FF;
+      --card:#FFFFFF;
+      --text:#1E1B4B;
+      --text2:#6B7280;
+      --border:#E5E7EB;
+      --safe-b:env(safe-area-inset-bottom,0px);
+      --nav-h:60px;
+      --health-c:#059669; --health-bg:#ECFDF5;
+      --hygiene-c:#2563EB; --hygiene-bg:#EFF6FF;
+      --work-c:#7C3AED;   --work-bg:#F5F3FF;
+      --growth-c:#D97706; --growth-bg:#FFFBEB;
+      --life-c:#EA580C;   --life-bg:#FFF7ED;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100dvh;
-      overscroll-behavior: none;
-    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overscroll-behavior:none}
 
-    /* Install banner */
-    #installBanner {
-      display: none;
-      background: var(--primary-light);
-      padding: 10px 16px;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 1px solid #C7D2FE;
-    }
-    #installBanner.show { display: flex; }
-    #installBanner p { flex: 1; font-size: 0.82rem; color: #3730A3; line-height: 1.3; }
-    #installBanner .btn-install {
-      padding: 6px 14px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    #installBanner .btn-dismiss {
-      background: none;
-      border: none;
-      color: var(--text2);
-      font-size: 1.1rem;
-      cursor: pointer;
-      padding: 2px 4px;
-    }
+    /* ── Views ── */
+    .view{display:none;flex-direction:column;min-height:100dvh}
+    .view.active{display:flex}
+    .scroll{flex:1;overflow-y:auto;padding:14px 14px calc(var(--nav-h) + var(--safe-b) + 72px)}
 
-    /* Header */
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: var(--primary);
-      color: white;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 10px rgba(91,76,245,0.3);
-    }
-    header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
-    .header-btn {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      padding: 7px 12px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      font-weight: 500;
-    }
+    /* ── Header ── */
+    .vhdr{background:var(--purple);color:#fff;padding:18px 16px 22px;position:relative}
+    .vhdr .greet{font-size:.75rem;opacity:.8;margin-bottom:3px}
+    .vhdr .htitle{font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+    .vhdr .hsub{font-size:.78rem;opacity:.75;margin-top:2px;line-height:1.4}
+    .prog-wrap{background:rgba(255,255,255,.25);border-radius:10px;height:8px;margin-top:12px;overflow:hidden}
+    .prog-bar{height:100%;background:#fff;border-radius:10px;transition:width .4s ease}
+    .prog-txt{font-size:.7rem;opacity:.85;margin-top:5px;display:flex;justify-content:space-between}
 
-    /* Filter panel */
-    .filter-panel {
-      background: white;
-      overflow: hidden;
-      max-height: 0;
-      transition: max-height 0.3s ease, padding 0.3s ease;
-      border-bottom: 1px solid var(--border);
-    }
-    .filter-panel.open { max-height: 220px; padding: 14px 16px; }
-    .filter-row { margin-bottom: 10px; }
-    .filter-row:last-child { margin-bottom: 0; }
-    .filter-label { font-size: 0.72rem; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 7px; }
-    .filter-chips { display: flex; gap: 7px; flex-wrap: wrap; }
-    .chip {
-      padding: 5px 12px;
-      border-radius: 20px;
-      border: 1.5px solid var(--border);
-      background: white;
-      font-size: 0.78rem;
-      cursor: pointer;
-      color: var(--text2);
-      font-weight: 500;
-      transition: all 0.15s;
-    }
-    .chip.active { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    /* ── Summary cards ── */
+    .sumrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .sumcard{background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .snum{font-size:1.8rem;font-weight:800;line-height:1}
+    .slbl{font-size:.7rem;color:var(--text2);margin-top:3px}
 
-    /* Main */
-    main { padding: 14px 14px calc(90px + var(--safe-bottom)); }
+    /* ── Section ── */
+    .sec{margin-bottom:18px}
+    .sectitle{font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;display:flex;align-items:center;gap:6px}
 
-    /* Tabs */
-    .tabs {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 14px;
-      background: #E5E7EB;
-      padding: 4px;
-      border-radius: 10px;
-    }
-    .tab {
-      flex: 1;
-      padding: 8px 4px;
-      border: none;
-      background: transparent;
-      border-radius: 7px;
-      font-size: 0.82rem;
-      cursor: pointer;
-      color: var(--text2);
-      font-weight: 500;
-      transition: all 0.15s;
-    }
-    .tab.active {
-      background: white;
-      color: var(--text);
-      font-weight: 700;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    }
+    /* ── Item card ── */
+    .icard{background:#fff;border-radius:14px;padding:13px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:transform .1s}
+    .icard:active{transform:scale(.99)}
+    .icard.done-card{opacity:.5}
 
-    /* Empty state */
-    .empty {
-      text-align: center;
-      padding: 64px 24px;
-      color: var(--text2);
-    }
-    .empty .icon { font-size: 3.5rem; margin-bottom: 14px; }
-    .empty p { font-size: 0.88rem; line-height: 1.6; }
+    .cbar{width:4px;border-radius:2px;align-self:stretch;min-height:20px;flex-shrink:0}
+    .cat-health  .cbar{background:var(--health-c)}
+    .cat-hygiene .cbar{background:var(--hygiene-c)}
+    .cat-work    .cbar{background:var(--work-c)}
+    .cat-growth  .cbar{background:var(--growth-c)}
+    .cat-life    .cbar{background:var(--life-c)}
 
-    /* Task card */
-    .task-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 14px;
-      margin-bottom: 9px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      transition: transform 0.1s;
-    }
-    .task-card:active { transform: scale(0.99); }
-    .task-card.done { opacity: 0.55; }
+    .chk{width:24px;height:24px;border-radius:50%;border:2.5px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .2s}
+    .chk.on{border-color:var(--purple);background:var(--purple)}
+    .chk.on::after{content:'✓';color:#fff;font-size:11px;font-weight:800}
+    .cat-health  .chk.on{background:var(--health-c);border-color:var(--health-c)}
+    .cat-hygiene .chk.on{background:var(--hygiene-c);border-color:var(--hygiene-c)}
+    .cat-work    .chk.on{background:var(--work-c);border-color:var(--work-c)}
+    .cat-growth  .chk.on{background:var(--growth-c);border-color:var(--growth-c)}
+    .cat-life    .chk.on{background:var(--life-c);border-color:var(--life-c)}
 
-    .task-check {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      flex-shrink: 0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-      margin-top: 1px;
-    }
-    .task-check.checked { background: var(--primary); border-color: var(--primary); }
-    .task-check.checked::after { content: '✓'; color: white; font-size: 12px; font-weight: 800; }
+    .ibody{flex:1;min-width:0}
+    .ititle{font-size:.9rem;font-weight:500;line-height:1.35;word-break:break-word}
+    .done-card .ititle{text-decoration:line-through;color:var(--text2)}
+    .imeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center}
 
-    .p-bar { width: 3px; border-radius: 2px; align-self: stretch; flex-shrink: 0; min-height: 20px; }
-    .p-bar.high { background: var(--high); }
-    .p-bar.medium { background: var(--mid); }
-    .p-bar.low { background: var(--low); }
+    .bdg{font-size:.66rem;padding:2px 7px;border-radius:8px;font-weight:600}
+    .cat-health  .catbdg{background:var(--health-bg);color:var(--health-c)}
+    .cat-hygiene .catbdg{background:var(--hygiene-bg);color:var(--hygiene-c)}
+    .cat-work    .catbdg{background:var(--work-bg);color:var(--work-c)}
+    .cat-growth  .catbdg{background:var(--growth-bg);color:var(--growth-c)}
+    .cat-life    .catbdg{background:var(--life-bg);color:var(--life-c)}
 
-    .task-body { flex: 1; min-width: 0; }
-    .task-title {
-      font-size: 0.92rem;
-      font-weight: 500;
-      line-height: 1.4;
-      margin-bottom: 5px;
-      word-break: break-word;
-    }
-    .task-card.done .task-title { text-decoration: line-through; color: var(--text2); }
+    .streak{font-size:.66rem;font-weight:700;background:#FEF2F2;color:#DC2626;padding:2px 7px;border-radius:8px}
+    .streak.warm{background:#FEF9C3;color:#B45309}
+    .streak.hot{background:#FFF7ED;color:#C2410C}
+    .bdue{background:#FEF3C7;color:#92400E}
+    .bdue.ov{background:#FEE2E2;color:#991B1B}
+    .bphi{background:#FEE2E2;color:#991B1B}
 
-    .task-meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
-    .badge {
-      font-size: 0.68rem;
-      padding: 2px 7px;
-      border-radius: 8px;
-      font-weight: 600;
-    }
-    .b-due { background: #FEF3C7; color: #92400E; }
-    .b-due.overdue { background: #FEE2E2; color: #991B1B; }
-    .b-cat { background: var(--primary-light); color: #4338CA; }
-    .b-tag { background: #F3F4F6; color: #374151; }
+    .iacts{display:flex;flex-direction:column;gap:2px}
+    .abtn{background:none;border:none;cursor:pointer;padding:5px;border-radius:7px;font-size:.85rem;color:var(--text2);line-height:1}
+    .abtn:active{background:#F3F4F6}
 
-    .task-actions { display: flex; flex-direction: column; gap: 2px; }
-    .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 7px;
-      font-size: 0.9rem;
-      color: var(--text2);
-      line-height: 1;
-    }
-    .action-btn:active { background: #F3F4F6; }
+    /* ── Habit list card ── */
+    .hcard{background:#fff;border-radius:14px;padding:13px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .hico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .cat-health  .hico{background:var(--health-bg)}
+    .cat-hygiene .hico{background:var(--hygiene-bg)}
+    .cat-work    .hico{background:var(--work-bg)}
+    .cat-growth  .hico{background:var(--growth-bg)}
+    .cat-life    .hico{background:var(--life-bg)}
+    .hinfo{flex:1;min-width:0}
+    .hname{font-size:.9rem;font-weight:600}
+    .hmeta{font-size:.7rem;color:var(--text2);margin-top:3px}
+    .hstreak{text-align:center;min-width:44px}
+    .hstreak .sn{font-size:1.25rem;font-weight:800;line-height:1}
+    .hstreak .sl{font-size:.6rem;color:var(--text2);margin-top:2px}
 
-    /* FAB */
-    .fab {
-      position: fixed;
-      bottom: calc(20px + var(--safe-bottom));
-      right: 20px;
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: white;
-      border: none;
-      font-size: 1.8rem;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(91,76,245,0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    .fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(91,76,245,0.3); }
+    /* ── Empty ── */
+    .empty{text-align:center;padding:52px 24px;color:var(--text2)}
+    .empty .eico{font-size:3rem;margin-bottom:12px}
+    .empty p{font-size:.85rem;line-height:1.7}
 
-    /* Modal overlay */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 300;
-      display: none;
-      align-items: flex-end;
-      backdrop-filter: blur(2px);
-    }
-    .overlay.open { display: flex; }
+    /* ── Bottom nav ── */
+    .bnav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-b));background:#fff;border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:4px;z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+    .nbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:8px 4px;cursor:pointer;color:var(--text2)}
+    .nbtn .nico{font-size:1.35rem;line-height:1}
+    .nbtn .nlbl{font-size:.62rem;font-weight:500}
+    .nbtn.on{color:var(--purple)}
+    .nbtn.on .nlbl{font-weight:700}
 
-    /* Modal sheet */
-    .modal {
-      background: white;
-      border-radius: 22px 22px 0 0;
-      padding: 0 18px calc(28px + var(--safe-bottom));
-      width: 100%;
-      max-height: 92dvh;
-      overflow-y: auto;
-      animation: slideUp 0.28s cubic-bezier(0.32,0.72,0,1);
-    }
-    @keyframes slideUp {
-      from { transform: translateY(100%); opacity: 0.8; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+    /* ── FAB ── */
+    .fab{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);right:18px;width:54px;height:54px;border-radius:50%;background:var(--purple);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.45);display:flex;align-items:center;justify-content:center;z-index:200;transition:transform .15s}
+    .fab:active{transform:scale(.93)}
 
-    .modal-handle {
-      width: 36px;
-      height: 4px;
-      background: #D1D5DB;
-      border-radius: 2px;
-      margin: 12px auto 18px;
-    }
-    .modal h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 18px; }
+    /* ── Overlay / Sheet ── */
+    .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(2px)}
+    .ov.open{display:flex}
+    .sheet{background:#fff;border-radius:22px 22px 0 0;padding:0 18px calc(26px + var(--safe-b));width:100%;max-height:92dvh;overflow-y:auto;animation:sup .28s cubic-bezier(.32,.72,0,1)}
+    @keyframes sup{from{transform:translateY(100%);opacity:.8}to{transform:translateY(0);opacity:1}}
+    .shandle{width:36px;height:4px;background:#D1D5DB;border-radius:2px;margin:12px auto 18px}
+    .sheet h2{font-size:1.05rem;font-weight:700;margin-bottom:18px}
 
-    .form-group { margin-bottom: 14px; }
-    .form-label {
-      display: block;
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--text2);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .form-input {
-      width: 100%;
-      padding: 12px 13px;
-      border: 1.5px solid var(--border);
-      border-radius: 11px;
-      font-size: 0.92rem;
-      font-family: inherit;
-      color: var(--text);
-      background: #FAFAFA;
-      outline: none;
-      transition: border-color 0.2s, background 0.2s;
-      -webkit-appearance: none;
-    }
-    .form-input:focus { border-color: var(--primary); background: white; }
+    /* ── Type selector ── */
+    .typesel{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:6px 0 4px}
+    .typebtn{padding:20px 10px;border:2px solid var(--border);border-radius:16px;background:#fff;cursor:pointer;text-align:center;transition:all .15s}
+    .typebtn:active{transform:scale(.97)}
+    .typebtn .te{font-size:2rem;margin-bottom:8px}
+    .typebtn .tn{font-size:.9rem;font-weight:700}
+    .typebtn .td{font-size:.7rem;color:var(--text2);margin-top:3px;line-height:1.4}
 
-    .priority-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .p-btn {
-      padding: 10px 6px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: white;
-      cursor: pointer;
-      font-size: 0.82rem;
-      text-align: center;
-      transition: all 0.15s;
-      font-weight: 500;
-      color: var(--text2);
-    }
-    .p-btn.sel-high { border-color: var(--high); background: #FEF2F2; color: var(--high); font-weight: 700; }
-    .p-btn.sel-medium { border-color: var(--mid); background: #FFFBEB; color: #B45309; font-weight: 700; }
-    .p-btn.sel-low { border-color: var(--low); background: #F0FDF4; color: #15803D; font-weight: 700; }
+    /* ── Form ── */
+    .fg{margin-bottom:14px}
+    .fl{display:block;font-size:.7rem;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+    .fi{width:100%;padding:12px 13px;border:1.5px solid var(--border);border-radius:11px;font-size:.9rem;font-family:inherit;color:var(--text);background:#FAFAFA;outline:none;transition:border-color .2s;-webkit-appearance:none}
+    .fi:focus{border-color:var(--purple);background:#fff}
+    .btngrp{display:flex;flex-wrap:wrap;gap:7px}
+    .sbtn{padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:.78rem;cursor:pointer;color:var(--text2);font-weight:500;transition:all .15s}
+    .sbtn.a-health {border-color:var(--health-c);background:var(--health-bg);color:var(--health-c);font-weight:700}
+    .sbtn.a-hygiene{border-color:var(--hygiene-c);background:var(--hygiene-bg);color:var(--hygiene-c);font-weight:700}
+    .sbtn.a-work   {border-color:var(--work-c);background:var(--work-bg);color:var(--work-c);font-weight:700}
+    .sbtn.a-growth {border-color:var(--growth-c);background:var(--growth-bg);color:var(--growth-c);font-weight:700}
+    .sbtn.a-life   {border-color:var(--life-c);background:var(--life-bg);color:var(--life-c);font-weight:700}
+    .sbtn.a-p      {border-color:var(--purple);background:var(--purple-l);color:var(--purple);font-weight:700}
+    .priogrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+    .pbtn{padding:10px 4px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-size:.8rem;text-align:center;font-weight:500;color:var(--text2);transition:all .15s}
+    .pbtn.ph{border-color:#EF4444;background:#FEF2F2;color:#991B1B;font-weight:700}
+    .pbtn.pm{border-color:#F59E0B;background:#FFFBEB;color:#B45309;font-weight:700}
+    .pbtn.pl{border-color:#22C55E;background:#F0FDF4;color:#15803D;font-weight:700}
+    .mftr{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:20px}
+    .bcancel{padding:13px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:.9rem;cursor:pointer;color:var(--text2)}
+    .bsave{padding:13px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer}
+    .bdel{width:100%;padding:12px;border:1.5px solid #FEE2E2;border-radius:12px;background:#fff;color:#DC2626;font-size:.85rem;cursor:pointer;margin-top:10px}
 
-    .modal-footer { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 20px; }
-    .btn-cancel {
-      padding: 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 12px;
-      background: white;
-      font-size: 0.92rem;
-      cursor: pointer;
-      color: var(--text2);
-      font-weight: 500;
-    }
-    .btn-save {
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: var(--primary);
-      color: white;
-      font-size: 0.92rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    @media (min-width: 600px) {
-      main { max-width: 560px; margin: 0 auto; }
-      .overlay { align-items: center; }
-      .modal { border-radius: 22px; max-width: 480px; margin: auto; padding-bottom: 28px; }
-      .fab { right: calc(50% - 260px); }
+    @media(min-width:600px){
+      .scroll{max-width:560px;margin:0 auto;padding-left:0;padding-right:0}
+      .ov{align-items:center}
+      .sheet{border-radius:22px;max-width:480px;margin:auto;padding-bottom:28px}
+      .fab{right:calc(50% - 260px)}
     }
   </style>
 </head>
 <body>
 
-  <div id="installBanner">
-    <p>📲 ホーム画面に追加するとアプリとして使えます</p>
-    <button class="btn-install" onclick="installPWA()">追加</button>
-    <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+<!-- ══ TODAY ══ -->
+<div id="v-today" class="view active">
+  <div id="todayHdr" class="vhdr"></div>
+  <div id="todayBody" class="scroll"></div>
+</div>
+
+<!-- ══ HABITS ══ -->
+<div id="v-habits" class="view">
+  <div class="vhdr" style="padding-bottom:16px">
+    <div class="htitle">習慣トラッカー 🔥</div>
+    <div class="hsub">継続は力なり — 毎日の積み重ねを大切に</div>
   </div>
+  <div id="habitsBody" class="scroll"></div>
+</div>
 
-  <header>
-    <h1>📋 タスク管理</h1>
-    <button class="header-btn" onclick="toggleFilter()">フィルタ ▾</button>
-  </header>
+<!-- ══ TASKS ══ -->
+<div id="v-tasks" class="view">
+  <div class="vhdr" style="padding-bottom:16px">
+    <div class="htitle">タスク管理 ✅</div>
+    <div class="hsub">やるべきことを片付けてスッキリしよう</div>
+  </div>
+  <div id="tasksBody" class="scroll"></div>
+</div>
 
-  <div class="filter-panel" id="filterPanel">
-    <div class="filter-row">
-      <div class="filter-label">優先度</div>
-      <div class="filter-chips">
-        <button class="chip active" data-f="priority" data-v="">すべて</button>
-        <button class="chip" data-f="priority" data-v="high">🔴 高</button>
-        <button class="chip" data-f="priority" data-v="medium">🟡 中</button>
-        <button class="chip" data-f="priority" data-v="low">🟢 低</button>
+<!-- Bottom Nav -->
+<nav class="bnav">
+  <button class="nbtn on" id="nb-today"  onclick="go('today')"><span class="nico">🏠</span><span class="nlbl">今日</span></button>
+  <button class="nbtn"    id="nb-habits" onclick="go('habits')"><span class="nico">🔥</span><span class="nlbl">習慣</span></button>
+  <button class="nbtn"    id="nb-tasks"  onclick="go('tasks')"><span class="nico">📋</span><span class="nlbl">タスク</span></button>
+</nav>
+
+<button class="fab" onclick="openTypeOv()">＋</button>
+
+<!-- ══ TYPE SELECTOR ══ -->
+<div class="ov" id="ov-type">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <h2 style="text-align:center">何を追加しますか？</h2>
+    <div class="typesel">
+      <button class="typebtn" onclick="typeToHabit()">
+        <div class="te">🔁</div><div class="tn">習慣を追加</div>
+        <div class="td">毎日・毎週の<br>繰り返しタスク</div>
+      </button>
+      <button class="typebtn" onclick="typeToTask()">
+        <div class="te">✅</div><div class="tn">タスクを追加</div>
+        <div class="td">一度きりの<br>やることリスト</div>
+      </button>
+    </div>
+  </div>
+</div>
+<script>document.getElementById('ov-type').addEventListener('click',function(e){if(e.target===this)closeAll()})</script>
+
+<!-- ══ HABIT FORM ══ -->
+<div class="ov" id="ov-habit">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <h2 id="hHdr">習慣を追加</h2>
+    <form id="hForm" onsubmit="saveHabit(event)">
+      <input type="hidden" id="hId">
+      <div class="fg"><label class="fl">習慣のタイトル *</label>
+        <input class="fi" id="hTit" type="text" placeholder="例: シャワーを浴びる" required autocomplete="off"></div>
+      <div class="fg"><label class="fl">カテゴリ</label>
+        <div class="btngrp" id="hCats">
+          <button type="button" class="sbtn" data-c="health"  onclick="pickHCat('health')">🏃 健康</button>
+          <button type="button" class="sbtn" data-c="hygiene" onclick="pickHCat('hygiene')">🧼 清潔感</button>
+          <button type="button" class="sbtn" data-c="work"    onclick="pickHCat('work')">💼 仕事</button>
+          <button type="button" class="sbtn" data-c="growth"  onclick="pickHCat('growth')">📚 自己成長</button>
+          <button type="button" class="sbtn" data-c="life"    onclick="pickHCat('life')">🏠 生活</button>
+        </div></div>
+      <div class="fg"><label class="fl">時間帯</label>
+        <div class="btngrp" id="hTimes">
+          <button type="button" class="sbtn a-p" data-t="morning"   onclick="pickHTime('morning')">🌅 朝</button>
+          <button type="button" class="sbtn"     data-t="afternoon" onclick="pickHTime('afternoon')">☀️ 昼</button>
+          <button type="button" class="sbtn"     data-t="evening"   onclick="pickHTime('evening')">🌙 夜</button>
+          <button type="button" class="sbtn"     data-t="anytime"   onclick="pickHTime('anytime')">🕐 いつでも</button>
+        </div></div>
+      <div class="fg"><label class="fl">頻度</label>
+        <div class="btngrp" id="hFreqs">
+          <button type="button" class="sbtn a-p" data-f="daily"    onclick="pickHFreq('daily')">📅 毎日</button>
+          <button type="button" class="sbtn"     data-f="weekdays" onclick="pickHFreq('weekdays')">🗓 平日</button>
+          <button type="button" class="sbtn"     data-f="weekends" onclick="pickHFreq('weekends')">🎌 週末</button>
+        </div></div>
+      <div class="mftr">
+        <button type="button" class="bcancel" onclick="closeHOv()">キャンセル</button>
+        <button type="submit" class="bsave">保存する</button>
       </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-label">カテゴリ</div>
-      <div class="filter-chips" id="catChips">
-        <button class="chip active" data-f="category" data-v="">すべて</button>
+      <button type="button" class="bdel" id="hDel" style="display:none" onclick="delHabit()">🗑 この習慣を削除する</button>
+    </form>
+  </div>
+</div>
+<script>document.getElementById('ov-habit').addEventListener('click',function(e){if(e.target===this)closeHOv()})</script>
+
+<!-- ══ TASK FORM ══ -->
+<div class="ov" id="ov-task">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <h2 id="tHdr">タスクを追加</h2>
+    <form id="tForm" onsubmit="saveTask(event)">
+      <input type="hidden" id="tId">
+      <div class="fg"><label class="fl">タイトル *</label>
+        <input class="fi" id="tTit" type="text" placeholder="何をしますか？" required autocomplete="off"></div>
+      <div class="fg"><label class="fl">カテゴリ</label>
+        <div class="btngrp" id="tCats">
+          <button type="button" class="sbtn" data-c="health"  onclick="pickTCat('health')">🏃 健康</button>
+          <button type="button" class="sbtn" data-c="hygiene" onclick="pickTCat('hygiene')">🧼 清潔感</button>
+          <button type="button" class="sbtn" data-c="work"    onclick="pickTCat('work')">💼 仕事</button>
+          <button type="button" class="sbtn" data-c="growth"  onclick="pickTCat('growth')">📚 自己成長</button>
+          <button type="button" class="sbtn" data-c="life"    onclick="pickTCat('life')">🏠 生活</button>
+        </div></div>
+      <div class="fg"><label class="fl">優先度</label>
+        <div class="priogrid">
+          <button type="button" class="pbtn" data-p="high"   onclick="pickPrio('high')">🔴 高</button>
+          <button type="button" class="pbtn pm" data-p="medium" onclick="pickPrio('medium')">🟡 中</button>
+          <button type="button" class="pbtn" data-p="low"    onclick="pickPrio('low')">🟢 低</button>
+        </div></div>
+      <div class="fg"><label class="fl">時間帯</label>
+        <div class="btngrp" id="tTimes">
+          <button type="button" class="sbtn"     data-t="morning"   onclick="pickTTime('morning')">🌅 朝</button>
+          <button type="button" class="sbtn"     data-t="afternoon" onclick="pickTTime('afternoon')">☀️ 昼</button>
+          <button type="button" class="sbtn"     data-t="evening"   onclick="pickTTime('evening')">🌙 夜</button>
+          <button type="button" class="sbtn a-p" data-t="anytime"   onclick="pickTTime('anytime')">🕐 いつでも</button>
+        </div></div>
+      <div class="fg"><label class="fl">期限日</label>
+        <input class="fi" id="tDue" type="date"></div>
+      <div class="mftr">
+        <button type="button" class="bcancel" onclick="closeTOv()">キャンセル</button>
+        <button type="submit" class="bsave">保存する</button>
       </div>
-    </div>
+      <button type="button" class="bdel" id="tDel" style="display:none" onclick="delTask()">🗑 このタスクを削除する</button>
+    </form>
   </div>
+</div>
+<script>document.getElementById('ov-task').addEventListener('click',function(e){if(e.target===this)closeTOv()})</script>
 
-  <main>
-    <div class="tabs">
-      <button class="tab active" onclick="setTab('active', this)">未完了</button>
-      <button class="tab" onclick="setTab('done', this)">完了済み</button>
-      <button class="tab" onclick="setTab('all', this)">すべて</button>
-    </div>
-    <div id="taskList"></div>
-  </main>
+<script>
+// ── Constants ──
+const CATS = {
+  health:  {l:'健康',   e:'🏃'},
+  hygiene: {l:'清潔感', e:'🧼'},
+  work:    {l:'仕事',   e:'💼'},
+  growth:  {l:'自己成長',e:'📚'},
+  life:    {l:'生活',   e:'🏠'},
+};
+const TIMES = {
+  morning:  {l:'朝',       e:'🌅', o:0},
+  afternoon:{l:'昼',       e:'☀️',o:1},
+  evening:  {l:'夜',       e:'🌙', o:2},
+  anytime:  {l:'いつでも', e:'🕐', o:3},
+};
+const FREQS = {daily:'毎日', weekdays:'平日', weekends:'週末'};
+const MOTIV = [
+  'さあ、今日も一歩ずつ進みましょう！',
+  '良いスタートです！この調子で💪',
+  '順調！良いリズムを保っています✨',
+  '折り返し点！後半も頑張ろう！',
+  'もう少しです！完走しよう🏁',
+  '全完了！今日も本当によく頑張りました🎉',
+];
 
-  <button class="fab" onclick="openAdd()">＋</button>
+// ── State ──
+let habits = JSON.parse(localStorage.getItem('li_h') || '[]');
+let tasks  = JSON.parse(localStorage.getItem('li_t') || '[]');
+let nid    = parseInt(localStorage.getItem('li_id')  || '1');
+let curView = 'today';
+let hCat='', hTime='morning', hFreq='daily';
+let tCat='', tTime='anytime', tPrio='medium';
 
-  <div class="overlay" id="overlay" onclick="onOverlayClick(event)">
-    <div class="modal" id="modal">
-      <div class="modal-handle"></div>
-      <h2 id="modalHeading">タスクを追加</h2>
-      <form id="taskForm" onsubmit="saveTask(event)">
-        <input type="hidden" id="editId">
-        <div class="form-group">
-          <label class="form-label">タイトル *</label>
-          <input class="form-input" type="text" id="fTitle" placeholder="何をしますか？" required autocomplete="off">
+function persist() {
+  localStorage.setItem('li_h',  JSON.stringify(habits));
+  localStorage.setItem('li_t',  JSON.stringify(tasks));
+  localStorage.setItem('li_id', String(nid));
+}
+
+// ── Helpers ──
+function td() { return new Date().toISOString().split('T')[0]; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(s){ const d=new Date(s); return `${d.getMonth()+1}/${d.getDate()}`; }
+
+function dueToday(h) {
+  const day = new Date().getDay();
+  if (h.frequency === 'weekdays') return day>=1 && day<=5;
+  if (h.frequency === 'weekends') return day===0 || day===6;
+  return true;
+}
+function doneToday(h) { return (h.completedDates||[]).includes(td()); }
+
+function streak(h) {
+  const set = new Set(h.completedDates||[]);
+  if (!set.size) return 0;
+  let n=0, d=new Date();
+  if (!set.has(d.toISOString().split('T')[0])) d.setDate(d.getDate()-1);
+  for (let i=0;i<365;i++){
+    const s=d.toISOString().split('T')[0];
+    if (set.has(s)){n++;d.setDate(d.getDate()-1);}else break;
+  }
+  return n;
+}
+
+function streakBdg(n) {
+  if (!n) return '';
+  const cls = n>=30?'hot':n>=7?'warm':'';
+  return `<span class="streak ${cls}">🔥 ${n}日連続</span>`;
+}
+
+function greeting(){
+  const h=new Date().getHours();
+  if(h>=5&&h<11) return 'おはようございます 🌅';
+  if(h>=11&&h<17)return 'お疲れさまです ☀️';
+  if(h>=17&&h<22)return 'こんばんは 🌙';
+  return 'お疲れさまです ✨';
+}
+
+// ── Navigation ──
+function go(view) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById(`v-${view}`).classList.add('active');
+  document.getElementById(`nb-${view}`).classList.add('on');
+  curView = view;
+  render(view);
+}
+
+function render(v) {
+  if (v==='today')  renderToday();
+  else if(v==='habits') renderHabits();
+  else renderTasks();
+}
+
+// ── TODAY ──
+function renderToday() {
+  const t = td();
+  const due = habits.filter(dueToday);
+  const pendingTasks = tasks.filter(tk=>!tk.done && (!tk.due||tk.due<=t));
+  const total = due.length + pendingTasks.length;
+  const doneH = due.filter(doneToday).length;
+  const pct = total ? Math.round(doneH/total*100) : 0;
+  const motI = Math.min(Math.floor(pct/20),5);
+
+  const d = new Date();
+  const WD = ['日','月','火','水','木','金','土'];
+  document.getElementById('todayHdr').innerHTML = `
+    <div class="greet">${greeting()}</div>
+    <div class="htitle">${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})</div>
+    <div class="hsub">${MOTIV[motI]}</div>
+    <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%"></div></div>
+    <div class="prog-txt"><span>${doneH} / ${total} 完了</span><span>${pct}%</span></div>`;
+
+  const bestS = habits.length ? Math.max(0,...habits.map(streak)) : 0;
+  let html = `<div class="sumrow">
+    <div class="sumcard"><div class="snum" style="color:var(--purple)">${pct}<span style="font-size:1rem">%</span></div><div class="slbl">今日の達成率</div></div>
+    <div class="sumcard"><div class="snum" style="color:#DC2626">🔥${bestS}</div><div class="slbl">最長連続記録</div></div>
+  </div>`;
+
+  if (!total) {
+    html += `<div class="empty"><div class="eico">✨</div><p>まだ何もありません<br>＋ボタンで習慣やタスクを追加しましょう</p></div>`;
+    document.getElementById('todayBody').innerHTML = html;
+    return;
+  }
+
+  for (const key of ['morning','afternoon','evening','anytime']) {
+    const hh = due.filter(h=>(h.timeOfDay||'anytime')===key);
+    const tt = pendingTasks.filter(tk=>(tk.timeOfDay||'anytime')===key);
+    if (!hh.length && !tt.length) continue;
+    const T = TIMES[key];
+    html += `<div class="sec"><div class="sectitle">${T.e} ${T.l}</div>`;
+    for (const h of hh) {
+      const dn = doneToday(h), cat = h.category||'life', s = streak(h);
+      html += `<div class="icard cat-${cat}${dn?' done-card':''}">
+        <div class="chk${dn?' on':''}" onclick="togH(${h.id})"></div>
+        <div class="cbar"></div>
+        <div class="ibody">
+          <div class="ititle">${esc(h.title)}</div>
+          <div class="imeta"><span class="bdg catbdg">${CATS[cat].e} ${CATS[cat].l}</span>${streakBdg(s)}</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">優先度</label>
-          <div class="priority-grid">
-            <button type="button" class="p-btn" data-p="high" onclick="setPri('high')">🔴 高</button>
-            <button type="button" class="p-btn sel-medium" data-p="medium" onclick="setPri('medium')">🟡 中</button>
-            <button type="button" class="p-btn" data-p="low" onclick="setPri('low')">🟢 低</button>
-          </div>
+        <div class="iacts"><button class="abtn" onclick="editH(${h.id})">✏️</button></div>
+      </div>`;
+    }
+    for (const tk of tt) {
+      const cat=tk.category||'life', od=tk.due&&tk.due<t;
+      const duelbl=tk.due?`<span class="bdg bdue${od?' ov':''}">${od?'⚠️ ':'📅 '}${fmtDate(tk.due)}</span>`:'';
+      const prlbl=tk.priority==='high'?'<span class="bdg bphi">高優先</span>':'';
+      html += `<div class="icard cat-${cat}">
+        <div class="chk" onclick="togT(${tk.id})"></div>
+        <div class="cbar"></div>
+        <div class="ibody">
+          <div class="ititle">${esc(tk.title)}</div>
+          <div class="imeta"><span class="bdg catbdg">${CATS[cat].e} ${CATS[cat].l}</span>${duelbl}${prlbl}</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">期限日</label>
-          <input class="form-input" type="date" id="fDue">
+        <div class="iacts"><button class="abtn" onclick="editT(${tk.id})">✏️</button></div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('todayBody').innerHTML = html;
+}
+
+// ── HABITS ──
+function renderHabits() {
+  if (!habits.length) {
+    document.getElementById('habitsBody').innerHTML = `<div class="empty"><div class="eico">🔁</div><p>まだ習慣がありません<br>＋ボタンで毎日の習慣を追加しましょう<br><br>例: シャワーを浴びる・散歩する<br>歯磨き・日記を書く</p></div>`;
+    return;
+  }
+  let html = '';
+  for (const cat of Object.keys(CATS)) {
+    const list = habits.filter(h=>(h.category||'life')===cat);
+    if (!list.length) continue;
+    html += `<div class="sec"><div class="sectitle">${CATS[cat].e} ${CATS[cat].l}</div>`;
+    for (const h of list) {
+      const dn=doneToday(h), due=dueToday(h), s=streak(h);
+      const col = s>=7?'#DC2626':s>=1?'#F59E0B':'#9CA3AF';
+      const statusTxt = !due?'今日は対象外':dn?'✅ 完了':'未完了';
+      html += `<div class="hcard cat-${cat}">
+        <div class="hico">${CATS[cat].e}</div>
+        <div class="hinfo">
+          <div class="hname">${esc(h.title)}</div>
+          <div class="hmeta">${FREQS[h.frequency]||'毎日'} · ${TIMES[h.timeOfDay||'anytime'].l} · ${statusTxt}</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">カテゴリ</label>
-          <input class="form-input" type="text" id="fCat" placeholder="例: 仕事、プライベート" autocomplete="off">
+        <div class="hstreak">
+          <div class="sn" style="color:${col}">${s>0?'🔥':' '}${s}</div>
+          <div class="sl">連続日数</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">タグ (カンマ区切り)</label>
-          <input class="form-input" type="text" id="fTags" placeholder="例: work, urgent, meeting" autocomplete="off">
+        <div class="iacts">
+          <button class="abtn" onclick="togH(${h.id})" title="${dn?'取り消し':'完了にする'}">${dn?'↩':'✓'}</button>
+          <button class="abtn" onclick="editH(${h.id})">✏️</button>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
-          <button type="submit" class="btn-save">保存する</button>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('habitsBody').innerHTML = html;
+}
+
+// ── TASKS ──
+function renderTasks() {
+  const t = td();
+  const active = tasks.filter(tk=>!tk.done);
+  const done   = tasks.filter(tk=>tk.done);
+
+  if (!tasks.length) {
+    document.getElementById('tasksBody').innerHTML = `<div class="empty"><div class="eico">✅</div><p>タスクがありません<br>＋ボタンでやることを追加しましょう</p></div>`;
+    return;
+  }
+
+  function cards(list) {
+    return [...list].sort((a,b)=>{
+      const p={high:0,medium:1,low:2};
+      return ((p[a.priority]??1)-(p[b.priority]??1)) || (a.due||'9999').localeCompare(b.due||'9999');
+    }).map(tk=>{
+      const cat=tk.category||'life', od=tk.due&&tk.due<t&&!tk.done;
+      const dl=tk.due?`<span class="bdg bdue${od?' ov':''}">${od?'⚠️ ':'📅 '}${fmtDate(tk.due)}</span>`:'';
+      const pl=tk.priority==='high'?'<span class="bdg bphi">高優先</span>':'';
+      return `<div class="icard cat-${cat}${tk.done?' done-card':''}">
+        <div class="chk${tk.done?' on':''}" onclick="togT(${tk.id})"></div>
+        <div class="cbar"></div>
+        <div class="ibody">
+          <div class="ititle">${esc(tk.title)}</div>
+          <div class="imeta"><span class="bdg catbdg">${CATS[cat].e} ${CATS[cat].l}</span>${dl}${pl}</div>
         </div>
-      </form>
-    </div>
-  </div>
+        <div class="iacts">
+          <button class="abtn" onclick="editT(${tk.id})">✏️</button>
+          <button class="abtn" onclick="delTById(${tk.id})">🗑️</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
 
-  <script>
-    let tasks = JSON.parse(localStorage.getItem('tm_tasks') || '[]');
-    let nextId = parseInt(localStorage.getItem('tm_nid') || '1');
-    let tab = 'active';
-    let filter = { priority: '', category: '' };
-    let selPri = 'medium';
-    let deferredPrompt = null;
+  let html = '';
+  if (active.length) html += `<div class="sec"><div class="sectitle">📋 未完了 (${active.length}件)</div>${cards(active)}</div>`;
+  if (done.length)   html += `<div class="sec"><div class="sectitle">✅ 完了済み (${done.length}件)</div>${cards(done)}</div>`;
+  document.getElementById('tasksBody').innerHTML = html;
+}
 
-    // PWA install
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (!localStorage.getItem('tm_install_dismissed')) {
-        document.getElementById('installBanner').classList.add('show');
-      }
-    });
-    async function installPWA() {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      document.getElementById('installBanner').classList.remove('show');
-    }
-    function dismissInstall() {
-      localStorage.setItem('tm_install_dismissed', '1');
-      document.getElementById('installBanner').classList.remove('show');
-    }
+// ── TOGGLE ──
+function togH(id) {
+  const h = habits.find(h=>h.id===id);
+  if (!h) return;
+  const t=td();
+  h.completedDates=h.completedDates||[];
+  const i=h.completedDates.indexOf(t);
+  if (i>=0) h.completedDates.splice(i,1); else h.completedDates.push(t);
+  persist(); render(curView);
+}
+function togT(id) {
+  const tk=tasks.find(t=>t.id===id);
+  if (!tk) return;
+  tk.done=!tk.done;
+  tk.completedDate=tk.done?td():null;
+  persist(); render(curView);
+}
+function delTById(id) {
+  if (!confirm('このタスクを削除しますか？')) return;
+  tasks=tasks.filter(t=>t.id!==id);
+  persist(); render(curView);
+}
 
-    function persist() {
-      localStorage.setItem('tm_tasks', JSON.stringify(tasks));
-      localStorage.setItem('tm_nid', String(nextId));
-    }
+// ── MODALS ──
+function closeAll() { document.querySelectorAll('.ov').forEach(o=>o.classList.remove('open')); }
+function openTypeOv(){ closeAll(); document.getElementById('ov-type').classList.add('open'); }
+function typeToHabit(){ document.getElementById('ov-type').classList.remove('open'); openAddH(); }
+function typeToTask() { document.getElementById('ov-type').classList.remove('open'); openAddT(); }
 
-    function today() { return new Date().toISOString().split('T')[0]; }
-    function esc(s) {
-      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+function openAddH() {
+  document.getElementById('hId').value='';
+  document.getElementById('hHdr').textContent='習慣を追加';
+  document.getElementById('hForm').reset();
+  hCat=''; hTime='morning'; hFreq='daily';
+  syncSbtn('hCats','',null); syncSbtn('hTimes','t','morning'); syncSbtn('hFreqs','f','daily');
+  document.getElementById('hDel').style.display='none';
+  document.getElementById('ov-habit').classList.add('open');
+  setTimeout(()=>document.getElementById('hTit').focus(),120);
+}
+function editH(id) {
+  const h=habits.find(h=>h.id===id); if(!h)return;
+  document.getElementById('hId').value=id;
+  document.getElementById('hHdr').textContent='習慣を編集';
+  document.getElementById('hTit').value=h.title;
+  hCat=h.category||''; hTime=h.timeOfDay||'morning'; hFreq=h.frequency||'daily';
+  syncSbtn('hCats','c',hCat); syncSbtn('hTimes','t',hTime); syncSbtn('hFreqs','f',hFreq);
+  document.getElementById('hDel').style.display='block';
+  document.getElementById('ov-habit').classList.add('open');
+}
+function closeHOv(){ document.getElementById('ov-habit').classList.remove('open'); }
+function saveHabit(e) {
+  e.preventDefault();
+  const id=document.getElementById('hId').value;
+  const title=document.getElementById('hTit').value.trim();
+  if (id) {
+    const h=habits.find(h=>h.id===parseInt(id));
+    if(h)Object.assign(h,{title,category:hCat||null,timeOfDay:hTime,frequency:hFreq});
+  } else {
+    habits.push({id:nid++,title,category:hCat||null,timeOfDay:hTime,frequency:hFreq,completedDates:[],createdAt:new Date().toISOString()});
+  }
+  persist(); closeHOv(); render(curView);
+}
+function delHabit() {
+  if(!confirm('この習慣を削除しますか？'))return;
+  const id=parseInt(document.getElementById('hId').value);
+  habits=habits.filter(h=>h.id!==id);
+  persist(); closeHOv(); render(curView);
+}
 
-    function render() {
-      const prioOrd = { high: 0, medium: 1, low: 2 };
-      let list = tasks.filter(t => {
-        if (tab === 'active' && t.done) return false;
-        if (tab === 'done' && !t.done) return false;
-        if (filter.priority && t.priority !== filter.priority) return false;
-        if (filter.category && t.category !== filter.category) return false;
-        return true;
-      }).sort((a, b) => {
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        const pd = (prioOrd[a.priority] ?? 1) - (prioOrd[b.priority] ?? 1);
-        if (pd) return pd;
-        return (a.due || '9999').localeCompare(b.due || '9999');
-      });
+function openAddT() {
+  document.getElementById('tId').value='';
+  document.getElementById('tHdr').textContent='タスクを追加';
+  document.getElementById('tForm').reset();
+  tCat=''; tTime='anytime'; tPrio='medium';
+  syncSbtn('tCats','c',null); syncSbtn('tTimes','t','anytime'); syncPrio('medium');
+  document.getElementById('tDel').style.display='none';
+  document.getElementById('ov-task').classList.add('open');
+  setTimeout(()=>document.getElementById('tTit').focus(),120);
+}
+function editT(id) {
+  const tk=tasks.find(t=>t.id===id); if(!tk)return;
+  document.getElementById('tId').value=id;
+  document.getElementById('tHdr').textContent='タスクを編集';
+  document.getElementById('tTit').value=tk.title;
+  document.getElementById('tDue').value=tk.due||'';
+  tCat=tk.category||''; tTime=tk.timeOfDay||'anytime'; tPrio=tk.priority||'medium';
+  syncSbtn('tCats','c',tCat); syncSbtn('tTimes','t',tTime); syncPrio(tPrio);
+  document.getElementById('tDel').style.display='block';
+  document.getElementById('ov-task').classList.add('open');
+}
+function closeTOv(){ document.getElementById('ov-task').classList.remove('open'); }
+function saveTask(e) {
+  e.preventDefault();
+  const id=document.getElementById('tId').value;
+  const title=document.getElementById('tTit').value.trim();
+  const due=document.getElementById('tDue').value||null;
+  if (id) {
+    const tk=tasks.find(t=>t.id===parseInt(id));
+    if(tk)Object.assign(tk,{title,category:tCat||null,timeOfDay:tTime,priority:tPrio,due});
+  } else {
+    tasks.push({id:nid++,title,category:tCat||null,timeOfDay:tTime,priority:tPrio,due,done:false,createdAt:new Date().toISOString()});
+  }
+  persist(); closeTOv(); render(curView);
+}
+function delTask() {
+  if(!confirm('このタスクを削除しますか？'))return;
+  const id=parseInt(document.getElementById('tId').value);
+  tasks=tasks.filter(t=>t.id!==id);
+  persist(); closeTOv(); render(curView);
+}
 
-      const el = document.getElementById('taskList');
-      if (!list.length) {
-        el.innerHTML = `<div class="empty"><div class="icon">📭</div><p>${tab === 'done' ? '完了済みのタスクはありません' : 'タスクがありません\n＋ボタンで追加しましょう'}</p></div>`;
-        return;
-      }
+// ── Form select helpers ──
+function syncSbtn(cid, attr, val) {
+  document.querySelectorAll(`#${cid} .sbtn`).forEach(b=>{
+    const v=b.dataset.c||b.dataset.t||b.dataset.f;
+    b.className='sbtn'+(v===val?` a-${val==='morning'||val==='afternoon'||val==='evening'||val==='anytime'||val==='daily'||val==='weekdays'||val==='weekends'?'p':val}`:'');
+  });
+}
+function pickHCat(v){hCat=v;document.querySelectorAll('#hCats .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.c===v?` a-${v}`:'')});}
+function pickTCat(v){tCat=v;document.querySelectorAll('#tCats .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.c===v?` a-${v}`:'')});}
+function pickHTime(v){hTime=v;document.querySelectorAll('#hTimes .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.t===v?' a-p':'')});}
+function pickTTime(v){tTime=v;document.querySelectorAll('#tTimes .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.t===v?' a-p':'')});}
+function pickHFreq(v){hFreq=v;document.querySelectorAll('#hFreqs .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.f===v?' a-p':'')});}
+function pickPrio(v){tPrio=v;document.querySelectorAll('.pbtn').forEach(b=>{b.className='pbtn'+(b.dataset.p===v?` p${v[0]}`:'')})}
+function syncPrio(v){pickPrio(v);}
 
-      el.innerHTML = list.map(t => {
-        const od = t.due && t.due < today() && !t.done;
-        const due = t.due ? `<span class="badge b-due${od ? ' overdue' : ''}">${od ? '⚠️ ' : '📅 '}${t.due}</span>` : '';
-        const cat = t.category ? `<span class="badge b-cat">${esc(t.category)}</span>` : '';
-        const tags = (t.tags || []).map(g => `<span class="badge b-tag">#${esc(g)}</span>`).join('');
-        return `<div class="task-card${t.done ? ' done' : ''}">
-          <div class="task-check${t.done ? ' checked' : ''}" onclick="toggle(${t.id})"></div>
-          <div class="p-bar ${t.priority || 'medium'}"></div>
-          <div class="task-body">
-            <div class="task-title">${esc(t.title)}</div>
-            <div class="task-meta">${due}${cat}${tags}</div>
-          </div>
-          <div class="task-actions">
-            <button class="action-btn" onclick="openEdit(${t.id})">✏️</button>
-            <button class="action-btn" onclick="del(${t.id})">🗑️</button>
-          </div>
-        </div>`;
-      }).join('');
-
-      // Update category chips
-      const cats = [...new Set(tasks.map(t => t.category).filter(Boolean))];
-      const cc = document.getElementById('catChips');
-      const allChip = cc.children[0];
-      cc.innerHTML = '';
-      cc.appendChild(allChip);
-      cats.forEach(c => {
-        const b = document.createElement('button');
-        b.className = 'chip' + (filter.category === c ? ' active' : '');
-        b.dataset.f = 'category';
-        b.dataset.v = c;
-        b.textContent = c;
-        b.onclick = () => setFilter('category', c);
-        cc.appendChild(b);
-      });
-      allChip.className = 'chip' + (filter.category === '' ? ' active' : '');
-    }
-
-    function toggle(id) {
-      const t = tasks.find(t => t.id === id);
-      if (t) { t.done = !t.done; persist(); render(); }
-    }
-
-    function del(id) {
-      if (!confirm('このタスクを削除しますか？')) return;
-      tasks = tasks.filter(t => t.id !== id);
-      persist(); render();
-    }
-
-    function setTab(t, btn) {
-      tab = t;
-      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      render();
-    }
-
-    function toggleFilter() {
-      document.getElementById('filterPanel').classList.toggle('open');
-    }
-
-    function setFilter(type, val) {
-      filter[type] = filter[type] === val ? '' : val;
-      document.querySelectorAll(`[data-f="${type}"]`).forEach(b => {
-        b.classList.toggle('active', b.dataset.v === filter[type]);
-      });
-      render();
-    }
-
-    document.querySelectorAll('[data-f]').forEach(b => {
-      b.addEventListener('click', () => setFilter(b.dataset.f, b.dataset.v));
-    });
-
-    // Modal
-    function openAdd() {
-      document.getElementById('editId').value = '';
-      document.getElementById('modalHeading').textContent = 'タスクを追加';
-      document.getElementById('taskForm').reset();
-      setPri('medium');
-      openModal();
-      setTimeout(() => document.getElementById('fTitle').focus(), 100);
-    }
-
-    function openEdit(id) {
-      const t = tasks.find(t => t.id === id);
-      if (!t) return;
-      document.getElementById('editId').value = id;
-      document.getElementById('modalHeading').textContent = 'タスクを編集';
-      document.getElementById('fTitle').value = t.title;
-      document.getElementById('fDue').value = t.due || '';
-      document.getElementById('fCat').value = t.category || '';
-      document.getElementById('fTags').value = (t.tags || []).join(', ');
-      setPri(t.priority || 'medium');
-      openModal();
-    }
-
-    function openModal() { document.getElementById('overlay').classList.add('open'); }
-    function closeModal() { document.getElementById('overlay').classList.remove('open'); }
-    function onOverlayClick(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
-
-    function setPri(p) {
-      selPri = p;
-      document.querySelectorAll('.p-btn').forEach(b => {
-        b.className = 'p-btn' + (b.dataset.p === p ? ` sel-${p}` : '');
-      });
-    }
-
-    function saveTask(e) {
-      e.preventDefault();
-      const id = document.getElementById('editId').value;
-      const title = document.getElementById('fTitle').value.trim();
-      const due = document.getElementById('fDue').value || null;
-      const category = document.getElementById('fCat').value.trim() || null;
-      const tags = document.getElementById('fTags').value.split(',').map(s => s.trim()).filter(Boolean);
-
-      if (id) {
-        const t = tasks.find(t => t.id === parseInt(id));
-        if (t) Object.assign(t, { title, due, category, tags, priority: selPri });
-      } else {
-        tasks.push({ id: nextId++, title, done: false, priority: selPri, due, category, tags, createdAt: new Date().toISOString() });
-      }
-
-      persist(); render(); closeModal();
-    }
-
-    // Init
-    render();
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-  </script>
+// ── Init ──
+renderToday();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
 </body>
 </html>

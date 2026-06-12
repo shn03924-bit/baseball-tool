@@ -1,11 +1,11 @@
 {
-  "name": "タスク管理",
-  "short_name": "タスク",
-  "description": "期限・優先度・カテゴリ・タグで管理するタスクマネージャー",
+  "name": "生活改善ノート",
+  "short_name": "生活改善",
+  "description": "生活リズムを整え、心身ともに健康で清潔感ある毎日をサポートするアプリ",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F3F4F6",
-  "theme_color": "#5B4CF5",
+  "background_color": "#F5F3FF",
+  "theme_color": "#7C3AED",
   "orientation": "portrait-primary",
   "icons": [
     {
