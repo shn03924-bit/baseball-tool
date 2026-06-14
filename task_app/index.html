@@ -169,6 +169,22 @@
     .bsave{padding:13px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer}
     .bdel{width:100%;padding:12px;border:1.5px solid #FEE2E2;border-radius:12px;background:#fff;color:#DC2626;font-size:.85rem;cursor:pointer;margin-top:10px}
 
+    /* ── Suggest feature ── */
+    .hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .hdr-sugg{background:rgba(255,255,255,.2);border:none;color:#fff;padding:7px 13px;border-radius:10px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:2px;flex-shrink:0}
+    .sgcard{background:#fff;border-radius:14px;padding:13px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .sgbody{flex:1;min-width:0}
+    .sgttl{font-size:.88rem;font-weight:600;line-height:1.35;margin-bottom:4px}
+    .sgwhy{font-size:.7rem;color:var(--text2);line-height:1.45;margin-bottom:7px}
+    .sgmeta{display:flex;flex-wrap:wrap;gap:5px}
+    .sgadd{border:1.5px solid var(--purple);background:var(--purple-l);color:var(--purple);border-radius:9px;padding:7px 13px;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0;align-self:center;white-space:nowrap;transition:all .15s}
+    .sgadd.added{border-color:#D1D5DB;background:#F9FAFB;color:#9CA3AF;cursor:default;font-weight:500}
+    .suggest-btn-wrap{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px dashed #C4B5FD}
+    .suggest-btn-wrap .sb-ico{font-size:1.5rem}
+    .suggest-btn-wrap .sb-txt{flex:1}
+    .suggest-btn-wrap .sb-ttl{font-size:.9rem;font-weight:700;color:var(--purple)}
+    .suggest-btn-wrap .sb-sub{font-size:.72rem;color:var(--text2);margin-top:2px}
+
     @media(min-width:600px){
       .scroll{max-width:560px;margin:0 auto;padding-left:0;padding-right:0}
       .ov{align-items:center}
@@ -188,8 +204,13 @@
 <!-- ══ HABITS ══ -->
 <div id="v-habits" class="view">
   <div class="vhdr" style="padding-bottom:16px">
-    <div class="htitle">習慣トラッカー 🔥</div>
-    <div class="hsub">継続は力なり — 毎日の積み重ねを大切に</div>
+    <div class="hdr-row">
+      <div>
+        <div class="htitle">習慣トラッカー 🔥</div>
+        <div class="hsub">継続は力なり — 毎日の積み重ねを大切に</div>
+      </div>
+      <button class="hdr-sugg" onclick="openSuggestOv()">💡 おすすめ</button>
+    </div>
   </div>
   <div id="habitsBody" class="scroll"></div>
 </div>
@@ -313,7 +334,78 @@
 </div>
 <script>document.getElementById('ov-task').addEventListener('click',function(e){if(e.target===this)closeTOv()})</script>
 
+<!-- ══ SUGGEST OVERLAY ══ -->
+<div class="ov" id="ov-suggest">
+  <div class="sheet" onclick="event.stopPropagation()" style="padding-bottom:calc(32px + var(--safe-b))">
+    <div class="shandle"></div>
+    <h2>💡 科学的根拠に基づく おすすめ習慣</h2>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:18px;line-height:1.5">
+      睡眠科学・神経科学・ポジティブ心理学などの研究に基づいたプリセット習慣です。<br>タップするだけで即追加できます。
+    </p>
+    <div id="suggestBody"></div>
+    <button class="bcancel" style="width:100%;margin-top:8px" onclick="closeSuggestOv()">閉じる</button>
+  </div>
+</div>
+<script>document.getElementById('ov-suggest').addEventListener('click',function(e){if(e.target===this)closeSuggestOv()})</script>
+
 <script>
+// ── Suggested habits (science-backed) ──
+const SUGGESTED = [
+  // 🏃 健康
+  { title:'起床後30分以内に日光を浴びる', cat:'health', time:'morning', freq:'daily',
+    why:'コルチゾールを適切なタイミングで分泌させ体内時計をリセット。夜のメラトニン分泌も改善（Huberman研究）' },
+  { title:'毎日同じ時間に起床する', cat:'health', time:'morning', freq:'daily',
+    why:'概日リズムを安定させる最重要因子。睡眠の質・日中の集中力が顕著に向上（睡眠科学の総意）' },
+  { title:'有酸素運動30分（速歩き・ジョギング）', cat:'health', time:'morning', freq:'daily',
+    why:'BDNF（脳由来神経栄養因子）が増加し記憶力・学習力が向上。心臓病リスク35%低減（複数RCT）' },
+  { title:'筋力トレーニング', cat:'health', time:'evening', freq:'weekdays',
+    why:'筋肉量は長寿の最強指標。基礎代謝向上・骨密度維持・インスリン感受性改善（Peter Attia）' },
+  { title:'1日8,000歩以上歩く', cat:'health', time:'anytime', freq:'daily',
+    why:'全死因死亡率を最大51%低減。8,000〜10,000歩が最適（JAMA Internal Medicine 2021）' },
+  { title:'就寝1時間前にスマホをやめる', cat:'health', time:'evening', freq:'daily',
+    why:'ブルーライトがメラトニン分泌を90分遅延。睡眠の質・深睡眠が著しく改善（Matthew Walker研究）' },
+  { title:'水を2リットル飲む', cat:'health', time:'anytime', freq:'daily',
+    why:'脱水わずか−2%で認知機能・集中力・気分が有意に低下。代謝・解毒機能にも必須' },
+  { title:'就寝・起床時刻を一定にする（7〜9時間確保）', cat:'health', time:'evening', freq:'daily',
+    why:'睡眠不足は免疫・記憶・メンタル・代謝に壊滅的影響。7時間未満で死亡率が上昇（Walker）' },
+  // 🧼 清潔感
+  { title:'毎日シャワーを浴びる', cat:'hygiene', time:'morning', freq:'daily',
+    why:'体臭・清潔感の基本。自己肯定感の向上、コルチゾール低下効果も報告されている' },
+  { title:'歯磨き＋デンタルフロス（夜）', cat:'hygiene', time:'evening', freq:'daily',
+    why:'歯周病菌が心臓病・アルツハイマー病リスクを高める。フロスで歯間を清掃しないと歯垢除去率40%止まり' },
+  { title:'朝のスキンケア（保湿＋日焼け止め）', cat:'hygiene', time:'morning', freq:'daily',
+    why:'UV被ばくが肌老化の80%以上の原因。日焼け止めは最も費用対効果の高いアンチエイジング施策' },
+  { title:'翌日の服を夜に選んで準備する', cat:'hygiene', time:'evening', freq:'daily',
+    why:'意思決定疲れ（Decision Fatigue）を防ぎ、朝の判断力・自制心を温存できる（Baumeister研究）' },
+  { title:'部屋を5分片付ける（朝）', cat:'hygiene', time:'morning', freq:'daily',
+    why:'散らかった環境がコルチゾールを持続的に上昇させストレスを慢性化させる（Princeton神経科学研究所）' },
+  // 📚 自己成長
+  { title:'瞑想・マインドフルネス 10分', cat:'growth', time:'morning', freq:'daily',
+    why:'8週間のMBSRで扁桃体が縮小し前頭前皮質が厚くなる。ストレス・不安・抑うつを有意に改善（Harvard）' },
+  { title:'読書30分', cat:'growth', time:'evening', freq:'daily',
+    why:'認知予備力を高め認知症リスクを低減。週3.5時間の読書で死亡率17%低下（Yale大学）' },
+  { title:'感謝日記（今日良かった3つを書く）', cat:'growth', time:'evening', freq:'daily',
+    why:'幸福度・楽観性・人間関係の質を長期的に向上。神経回路レベルでポジティブ感情を強化（Seligman）' },
+  { title:'一日の振り返り日記', cat:'growth', time:'evening', freq:'daily',
+    why:'感情処理・自己認識力向上。書くことでストレスを客観化し問題解決力が上がる（Pennebaker研究）' },
+  { title:'新しいスキルを15分学ぶ', cat:'growth', time:'anytime', freq:'daily',
+    why:'神経可塑性を持続的に維持。成長マインドセット形成と自己効力感の向上（Dweck・Bandura研究）' },
+  // 💼 仕事
+  { title:'その日の最重要タスクを午前中に終わらせる', cat:'work', time:'morning', freq:'weekdays',
+    why:'意志力・認知資源は起床後に最大化し時間とともに枯渇する。午前の深い仕事が生産性を決める（Newport）' },
+  { title:'90分の集中作業ブロックを設ける', cat:'work', time:'morning', freq:'weekdays',
+    why:'ウルトラディアンリズム（90分集中サイクル）に同期した作業が最も効率的（Kleitman研究）' },
+  { title:'メールは時間を決めてまとめてチェック', cat:'work', time:'afternoon', freq:'weekdays',
+    why:'タスク切り替え後の集中回復に平均23分かかる。注意残余（Attention Residue）を防ぐ（Gloria Mark）' },
+  // 🏠 生活
+  { title:'起きたらすぐベッドを整える', cat:'life', time:'morning', freq:'daily',
+    why:'小さな達成感が自律心と生産性の連鎖を生むキーストーン習慣。McRaven将軍のスピーチでも有名' },
+  { title:'夜に翌日のToDoリストを書く', cat:'life', time:'evening', freq:'daily',
+    why:'未完了タスクへの執着（Zeigarnik効果）を解消し脳を休ませ睡眠の質を高める（Baylor大学研究）' },
+  { title:'週1回の部屋の掃除・整頓', cat:'life', time:'anytime', freq:'weekends',
+    why:'清潔な住環境はアレルギー低減・精神的安定・自己効力感の維持に科学的に寄与する' },
+];
+
 // ── Constants ──
 const CATS = {
   health:  {l:'健康',   e:'🏃'},
@@ -477,11 +569,19 @@ function renderToday() {
 
 // ── HABITS ──
 function renderHabits() {
+  const suggestCard = `<div class="suggest-btn-wrap" onclick="openSuggestOv()">
+    <div class="sb-ico">💡</div>
+    <div class="sb-txt">
+      <div class="sb-ttl">科学的根拠に基づくおすすめ習慣</div>
+      <div class="sb-sub">睡眠・運動・マインドフルネスなど ${SUGGESTED.length}種類 — タップして即追加</div>
+    </div>
+    <span style="color:var(--purple);font-size:1.1rem">›</span>
+  </div>`;
   if (!habits.length) {
-    document.getElementById('habitsBody').innerHTML = `<div class="empty"><div class="eico">🔁</div><p>まだ習慣がありません<br>＋ボタンで毎日の習慣を追加しましょう<br><br>例: シャワーを浴びる・散歩する<br>歯磨き・日記を書く</p></div>`;
+    document.getElementById('habitsBody').innerHTML = suggestCard + `<div class="empty" style="padding-top:24px"><div class="eico">🔁</div><p>まだ習慣がありません<br>上のおすすめから追加するか<br>＋ボタンで自由に追加できます</p></div>`;
     return;
   }
-  let html = '';
+  let html = suggestCard;
   for (const cat of Object.keys(CATS)) {
     const list = habits.filter(h=>(h.category||'life')===cat);
     if (!list.length) continue;
@@ -676,6 +776,57 @@ function pickTTime(v){tTime=v;document.querySelectorAll('#tTimes .sbtn').forEach
 function pickHFreq(v){hFreq=v;document.querySelectorAll('#hFreqs .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.f===v?' a-p':'')});}
 function pickPrio(v){tPrio=v;document.querySelectorAll('.pbtn').forEach(b=>{b.className='pbtn'+(b.dataset.p===v?` p${v[0]}`:'')})}
 function syncPrio(v){pickPrio(v);}
+
+// ── Suggest modal ──
+function openSuggestOv() {
+  renderSuggest();
+  document.getElementById('ov-suggest').classList.add('open');
+}
+function closeSuggestOv() {
+  document.getElementById('ov-suggest').classList.remove('open');
+}
+function renderSuggest() {
+  const addedTitles = new Set(habits.map(h=>h.title));
+  const byCat = {};
+  SUGGESTED.forEach((s,i)=>{
+    if(!byCat[s.cat]) byCat[s.cat]=[];
+    byCat[s.cat].push({...s,idx:i});
+  });
+  let html='';
+  for(const cat of Object.keys(CATS)){
+    if(!byCat[cat]) continue;
+    html+=`<div class="sec"><div class="sectitle">${CATS[cat].e} ${CATS[cat].l}</div>`;
+    for(const s of byCat[cat]){
+      const done=addedTitles.has(s.title);
+      const timeLbl=TIMES[s.time]?.e+' '+TIMES[s.time]?.l||s.time;
+      const freqLbl=FREQS[s.freq]||s.freq;
+      html+=`<div class="sgcard cat-${s.cat}">
+        <div class="cbar" style="min-height:40px"></div>
+        <div class="sgbody">
+          <div class="sgttl">${esc(s.title)}</div>
+          <div class="sgwhy">📖 ${esc(s.why)}</div>
+          <div class="sgmeta">
+            <span class="bdg" style="background:#F3F4F6;color:#374151">${timeLbl}</span>
+            <span class="bdg" style="background:#F3F4F6;color:#374151">📅 ${freqLbl}</span>
+          </div>
+        </div>
+        <button class="sgadd${done?' added':''}" onclick="addSuggested(${s.idx})" ${done?'disabled':''}>${done?'追加済み':'追加'}</button>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  document.getElementById('suggestBody').innerHTML=html;
+}
+function addSuggested(idx) {
+  const s=SUGGESTED[idx];
+  if(!s) return;
+  if(habits.some(h=>h.title===s.title)) return;
+  habits.push({id:nid++,title:s.title,category:s.cat,timeOfDay:s.time,frequency:s.freq,completedDates:[],createdAt:new Date().toISOString()});
+  persist();
+  renderSuggest();
+  if(curView==='habits') renderHabits();
+  else if(curView==='today') renderToday();
+}
 
 // ── Init ──
 renderToday();
