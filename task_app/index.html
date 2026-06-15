@@ -99,7 +99,7 @@
     .abtn:active{background:#F3F4F6}
 
     /* ── Habit list card ── */
-    .hcard{background:#fff;border-radius:14px;padding:13px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    /* .hcard defined above with calendar support */
     .hico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
     .cat-health  .hico{background:var(--health-bg)}
     .cat-hygiene .hico{background:var(--hygiene-bg)}
@@ -168,6 +168,27 @@
     .bcancel{padding:13px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:.9rem;cursor:pointer;color:var(--text2)}
     .bsave{padding:13px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer}
     .bdel{width:100%;padding:12px;border:1.5px solid #FEE2E2;border-radius:12px;background:#fff;color:#DC2626;font-size:.85rem;cursor:pointer;margin-top:10px}
+
+    /* ── Habit calendar heatmap ── */
+    .hcard{background:#fff;border-radius:14px;padding:13px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .hcard-top{display:flex;align-items:center;gap:11px}
+    .hcal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6}
+    .hch{font-size:.58rem;color:var(--text2);text-align:center;padding-bottom:3px;font-weight:600}
+    .hcd{aspect-ratio:1;border-radius:3px}
+    .hcd-na{background:transparent}
+    .hcd-ms{background:#F0F0F0}
+    .hcd-ok{background:var(--purple)}
+    .cat-health  .hcd-ok{background:var(--health-c)}
+    .cat-hygiene .hcd-ok{background:var(--hygiene-c)}
+    .cat-work    .hcd-ok{background:var(--work-c)}
+    .cat-growth  .hcd-ok{background:var(--growth-c)}
+    .cat-life    .hcd-ok{background:var(--life-c)}
+    .hcd-td{outline:2.5px solid var(--purple);outline-offset:1px;border-radius:4px}
+    .cat-health  .hcd-td{outline-color:var(--health-c)}
+    .cat-hygiene .hcd-td{outline-color:var(--hygiene-c)}
+    .cat-work    .hcd-td{outline-color:var(--work-c)}
+    .cat-growth  .hcd-td{outline-color:var(--growth-c)}
+    .cat-life    .hcd-td{outline-color:var(--life-c)}
 
     /* ── Suggest feature ── */
     .hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
@@ -445,28 +466,46 @@ function persist() {
 }
 
 // ── Helpers ──
-function td() { return new Date().toISOString().split('T')[0]; }
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(s){ const d=new Date(s); return `${d.getMonth()+1}/${d.getDate()}`; }
-
-function dueToday(h) {
-  const day = new Date().getDay();
-  if (h.frequency === 'weekdays') return day>=1 && day<=5;
-  if (h.frequency === 'weekends') return day===0 || day===6;
+function td() {
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function isDayApplicable(freq, dow) {
+  if (freq==='weekdays') return dow>=1 && dow<=5;
+  if (freq==='weekends') return dow===0 || dow===6;
   return true;
 }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(s){ const d=new Date(s+'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; }
+
+function dueToday(h) { return isDayApplicable(h.frequency, new Date().getDay()); }
 function doneToday(h) { return (h.completedDates||[]).includes(td()); }
 
 function streak(h) {
   const set = new Set(h.completedDates||[]);
   if (!set.size) return 0;
-  let n=0, d=new Date();
-  if (!set.has(d.toISOString().split('T')[0])) d.setDate(d.getDate()-1);
-  for (let i=0;i<365;i++){
-    const s=d.toISOString().split('T')[0];
-    if (set.has(s)){n++;d.setDate(d.getDate()-1);}else break;
+  const todayStr = td();
+  let count = 0;
+  const d = new Date();
+  for (let i=0; i<730; i++) {
+    const s = toDateStr(d);
+    if (!isDayApplicable(h.frequency, d.getDay())) {
+      d.setDate(d.getDate()-1); continue;   // 対象外の曜日はスキップ
+    }
+    if (set.has(s)) {
+      count++;
+    } else if (s === todayStr) {
+      // 今日はまだ終わっていないだけ（猶予）
+    } else {
+      break;                                 // 対象日に未完了 → 途切れ
+    }
+    d.setDate(d.getDate()-1);
   }
-  return n;
+  return count;
+}
 }
 
 function streakBdg(n) {
@@ -503,11 +542,14 @@ function render(v) {
 function renderToday() {
   const t = td();
   const due = habits.filter(dueToday);
-  const pendingTasks = tasks.filter(tk=>!tk.done && (!tk.due||tk.due<=t));
-  const total = due.length + pendingTasks.length;
+  const pendingTasks    = tasks.filter(tk=>!tk.done && (!tk.due||tk.due<=t));
+  const completedToday  = tasks.filter(tk=>tk.done && tk.completedDate===t);
+  const total = due.length + pendingTasks.length + completedToday.length;
   const doneH = due.filter(doneToday).length;
-  const pct = total ? Math.round(doneH/total*100) : 0;
-  const motI = Math.min(Math.floor(pct/20),5);
+  const doneT = completedToday.length;
+  const done  = doneH + doneT;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  const motI  = Math.min(Math.floor(pct/20),5);
 
   const d = new Date();
   const WD = ['日','月','火','水','木','金','土'];
@@ -516,7 +558,7 @@ function renderToday() {
     <div class="htitle">${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})</div>
     <div class="hsub">${MOTIV[motI]}</div>
     <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%"></div></div>
-    <div class="prog-txt"><span>${doneH} / ${total} 完了</span><span>${pct}%</span></div>`;
+    <div class="prog-txt"><span>${done} / ${total} 完了</span><span>${pct}%</span></div>`;
 
   const bestS = habits.length ? Math.max(0,...habits.map(streak)) : 0;
   let html = `<div class="sumrow">
@@ -591,19 +633,22 @@ function renderHabits() {
       const col = s>=7?'#DC2626':s>=1?'#F59E0B':'#9CA3AF';
       const statusTxt = !due?'今日は対象外':dn?'✅ 完了':'未完了';
       html += `<div class="hcard cat-${cat}">
-        <div class="hico">${CATS[cat].e}</div>
-        <div class="hinfo">
-          <div class="hname">${esc(h.title)}</div>
-          <div class="hmeta">${FREQS[h.frequency]||'毎日'} · ${TIMES[h.timeOfDay||'anytime'].l} · ${statusTxt}</div>
+        <div class="hcard-top">
+          <div class="hico">${CATS[cat].e}</div>
+          <div class="hinfo">
+            <div class="hname">${esc(h.title)}</div>
+            <div class="hmeta">${FREQS[h.frequency]||'毎日'} · ${TIMES[h.timeOfDay||'anytime'].l} · ${statusTxt}</div>
+          </div>
+          <div class="hstreak">
+            <div class="sn" style="color:${col}">${s>0?'🔥':' '}${s}</div>
+            <div class="sl">連続日数</div>
+          </div>
+          <div class="iacts">
+            <button class="abtn" onclick="togH(${h.id})" title="${dn?'取り消し':'完了にする'}">${dn?'↩':'✓'}</button>
+            <button class="abtn" onclick="editH(${h.id})">✏️</button>
+          </div>
         </div>
-        <div class="hstreak">
-          <div class="sn" style="color:${col}">${s>0?'🔥':' '}${s}</div>
-          <div class="sl">連続日数</div>
-        </div>
-        <div class="iacts">
-          <button class="abtn" onclick="togH(${h.id})" title="${dn?'取り消し':'完了にする'}">${dn?'↩':'✓'}</button>
-          <button class="abtn" onclick="editH(${h.id})">✏️</button>
-        </div>
+        ${renderHabitCal(h)}
       </div>`;
     }
     html += '</div>';
@@ -776,6 +821,38 @@ function pickTTime(v){tTime=v;document.querySelectorAll('#tTimes .sbtn').forEach
 function pickHFreq(v){hFreq=v;document.querySelectorAll('#hFreqs .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.f===v?' a-p':'')});}
 function pickPrio(v){tPrio=v;document.querySelectorAll('.pbtn').forEach(b=>{b.className='pbtn'+(b.dataset.p===v?` p${v[0]}`:'')})}
 function syncPrio(v){pickPrio(v);}
+
+// ── Habit calendar heatmap (5 weeks) ──
+function renderHabitCal(h) {
+  const set = new Set(h.completedDates||[]);
+  const todayStr = td();
+  const start = new Date();
+  start.setDate(start.getDate()-34);          // 35日前から
+
+  const DAY_LABELS = ['日','月','火','水','木','金','土'];
+  const headers = DAY_LABELS.map(l=>`<div class="hch">${l}</div>`).join('');
+
+  // 最初の曜日まで空白でパディング
+  let cells = '';
+  const padCount = start.getDay();            // 0=日
+  for (let p=0; p<padCount; p++) cells += `<div class="hcd hcd-na"></div>`;
+
+  for (let i=0; i<35; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate()+i);
+    const s = toDateStr(d);
+    const isToday   = s===todayStr;
+    const isFuture  = s>todayStr;
+    const applicable = isDayApplicable(h.frequency, d.getDay());
+    let cls = 'hcd';
+    if      (isFuture || !applicable) cls += ' hcd-na';
+    else if (set.has(s))              cls += ' hcd-ok';
+    else                              cls += ' hcd-ms';
+    if (isToday) cls += ' hcd-td';
+    cells += `<div class="${cls}"></div>`;
+  }
+  return `<div class="hcal">${headers}${cells}</div>`;
+}
 
 // ── Suggest modal ──
 function openSuggestOv() {
