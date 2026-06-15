@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#7C3AED">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="生活改善">
+  <link rel="manifest" href="manifest.json">
+  <title>生活改善ノート</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --purple:#7C3AED;
+      --purple-d:#6D28D9;
+      --purple-l:#EDE9FE;
+      --bg:#F5F3FF;
+      --card:#FFFFFF;
+      --text:#1E1B4B;
+      --text2:#6B7280;
+      --border:#E5E7EB;
+      --safe-b:env(safe-area-inset-bottom,0px);
+      --nav-h:60px;
+      --health-c:#059669; --health-bg:#ECFDF5;
+      --hygiene-c:#2563EB; --hygiene-bg:#EFF6FF;
+      --work-c:#7C3AED;   --work-bg:#F5F3FF;
+      --growth-c:#D97706; --growth-bg:#FFFBEB;
+      --life-c:#EA580C;   --life-bg:#FFF7ED;
+    }
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overscroll-behavior:none}
+
+    /* ── Views ── */
+    .view{display:none;flex-direction:column;min-height:100dvh}
+    .view.active{display:flex}
+    .scroll{flex:1;overflow-y:auto;padding:14px 14px calc(var(--nav-h) + var(--safe-b) + 72px)}
+
+    /* ── Header ── */
+    .vhdr{background:var(--purple);color:#fff;padding:18px 16px 22px;position:relative}
+    .vhdr .greet{font-size:.75rem;opacity:.8;margin-bottom:3px}
+    .vhdr .htitle{font-size:1.2rem;font-weight:700;letter-spacing:-.02em}
+    .vhdr .hsub{font-size:.78rem;opacity:.75;margin-top:2px;line-height:1.4}
+    .prog-wrap{background:rgba(255,255,255,.25);border-radius:10px;height:8px;margin-top:12px;overflow:hidden}
+    .prog-bar{height:100%;background:#fff;border-radius:10px;transition:width .4s ease}
+    .prog-txt{font-size:.7rem;opacity:.85;margin-top:5px;display:flex;justify-content:space-between}
+
+    /* ── Summary cards ── */
+    .sumrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+    .sumcard{background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .snum{font-size:1.8rem;font-weight:800;line-height:1}
+    .slbl{font-size:.7rem;color:var(--text2);margin-top:3px}
+
+    /* ── Section ── */
+    .sec{margin-bottom:18px}
+    .sectitle{font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+
+    /* ── Item card (today view) ── */
+    .icard{background:#fff;border-radius:14px;padding:13px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:transform .1s}
+    .icard:active{transform:scale(.99)}
+    .icard.done-card{opacity:.5}
+
+    .cbar{width:4px;border-radius:2px;align-self:stretch;min-height:20px;flex-shrink:0}
+    .cat-health  .cbar{background:var(--health-c)}
+    .cat-hygiene .cbar{background:var(--hygiene-c)}
+    .cat-work    .cbar{background:var(--work-c)}
+    .cat-growth  .cbar{background:var(--growth-c)}
+    .cat-life    .cbar{background:var(--life-c)}
+
+    .chk{width:24px;height:24px;border-radius:50%;border:2.5px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#fff;transition:all .2s}
+    .chk.on{border-color:var(--purple);background:var(--purple)}
+    .chk.on::after{content:'✓';color:#fff;font-size:11px;font-weight:800}
+    .cat-health  .chk.on{background:var(--health-c);border-color:var(--health-c)}
+    .cat-hygiene .chk.on{background:var(--hygiene-c);border-color:var(--hygiene-c)}
+    .cat-work    .chk.on{background:var(--work-c);border-color:var(--work-c)}
+    .cat-growth  .chk.on{background:var(--growth-c);border-color:var(--growth-c)}
+    .cat-life    .chk.on{background:var(--life-c);border-color:var(--life-c)}
+
+    .ibody{flex:1;min-width:0}
+    .ititle{font-size:.9rem;font-weight:500;line-height:1.35;word-break:break-word}
+    .done-card .ititle{text-decoration:line-through;color:var(--text2)}
+    .imeta{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;align-items:center}
+
+    .bdg{font-size:.66rem;padding:2px 7px;border-radius:8px;font-weight:600}
+    .cat-health  .catbdg{background:var(--health-bg);color:var(--health-c)}
+    .cat-hygiene .catbdg{background:var(--hygiene-bg);color:var(--hygiene-c)}
+    .cat-work    .catbdg{background:var(--work-bg);color:var(--work-c)}
+    .cat-growth  .catbdg{background:var(--growth-bg);color:var(--growth-c)}
+    .cat-life    .catbdg{background:var(--life-bg);color:var(--life-c)}
+
+    .streak{font-size:.66rem;font-weight:700;background:#FEF2F2;color:#DC2626;padding:2px 7px;border-radius:8px}
+    .streak.warm{background:#FEF9C3;color:#B45309}
+    .streak.hot{background:#FFF7ED;color:#C2410C}
+
+    .iacts{display:flex;flex-direction:column;gap:2px}
+    .abtn{background:none;border:none;cursor:pointer;padding:5px;border-radius:7px;font-size:.85rem;color:var(--text2);line-height:1}
+    .abtn:active{background:#F3F4F6}
+
+    /* ── Habit list card ── */
+    .hcard{background:#fff;border-radius:14px;padding:13px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .hcard-top{display:flex;align-items:center;gap:11px}
+    .hcal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:10px;padding-top:10px;border-top:1px solid #F3F4F6}
+    .hch{font-size:.58rem;color:var(--text2);text-align:center;padding-bottom:3px;font-weight:600}
+    .hcd{aspect-ratio:1;border-radius:3px}
+    .hcd-na{background:transparent}
+    .hcd-ms{background:#F0F0F0}
+    .hcd-ok{background:var(--purple)}
+    .cat-health  .hcd-ok{background:var(--health-c)}
+    .cat-hygiene .hcd-ok{background:var(--hygiene-c)}
+    .cat-work    .hcd-ok{background:var(--work-c)}
+    .cat-growth  .hcd-ok{background:var(--growth-c)}
+    .cat-life    .hcd-ok{background:var(--life-c)}
+    .hcd-td{outline:2.5px solid var(--purple);outline-offset:1px;border-radius:4px}
+    .cat-health  .hcd-td{outline-color:var(--health-c)}
+    .cat-hygiene .hcd-td{outline-color:var(--hygiene-c)}
+    .cat-work    .hcd-td{outline-color:var(--work-c)}
+    .cat-growth  .hcd-td{outline-color:var(--growth-c)}
+    .cat-life    .hcd-td{outline-color:var(--life-c)}
+
+    .hico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .cat-health  .hico{background:var(--health-bg)}
+    .cat-hygiene .hico{background:var(--hygiene-bg)}
+    .cat-work    .hico{background:var(--work-bg)}
+    .cat-growth  .hico{background:var(--growth-bg)}
+    .cat-life    .hico{background:var(--life-bg)}
+    .hinfo{flex:1;min-width:0}
+    .hname{font-size:.9rem;font-weight:600}
+    .hmeta{font-size:.7rem;color:var(--text2);margin-top:3px}
+    .hstreak{text-align:center;min-width:44px}
+    .hstreak .sn{font-size:1.25rem;font-weight:800;line-height:1}
+    .hstreak .sl{font-size:.6rem;color:var(--text2);margin-top:2px}
+
+    /* ── Empty ── */
+    .empty{text-align:center;padding:52px 24px;color:var(--text2)}
+    .empty .eico{font-size:3rem;margin-bottom:12px}
+    .empty p{font-size:.85rem;line-height:1.7}
+
+    /* ── Bottom nav ── */
+    .bnav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-h) + var(--safe-b));background:#fff;border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:4px;z-index:100;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+    .nbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;padding:8px 4px;cursor:pointer;color:var(--text2)}
+    .nbtn .nico{font-size:1.35rem;line-height:1}
+    .nbtn .nlbl{font-size:.62rem;font-weight:500}
+    .nbtn.on{color:var(--purple)}
+    .nbtn.on .nlbl{font-weight:700}
+
+    /* ── FAB ── */
+    .fab{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);right:18px;width:54px;height:54px;border-radius:50%;background:var(--purple);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.45);display:flex;align-items:center;justify-content:center;z-index:200;transition:transform .15s}
+    .fab:active{transform:scale(.93)}
+
+    /* ── Overlay / Sheet ── */
+    .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(2px)}
+    .ov.open{display:flex}
+    .sheet{background:#fff;border-radius:22px 22px 0 0;padding:0 18px calc(26px + var(--safe-b));width:100%;max-height:92dvh;overflow-y:auto;animation:sup .28s cubic-bezier(.32,.72,0,1)}
+    @keyframes sup{from{transform:translateY(100%);opacity:.8}to{transform:translateY(0);opacity:1}}
+    .shandle{width:36px;height:4px;background:#D1D5DB;border-radius:2px;margin:12px auto 18px}
+    .sheet h2{font-size:1.05rem;font-weight:700;margin-bottom:18px}
+
+    /* ── Form ── */
+    .fg{margin-bottom:14px}
+    .fl{display:block;font-size:.7rem;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em}
+    .fi{width:100%;padding:12px 13px;border:1.5px solid var(--border);border-radius:11px;font-size:.9rem;font-family:inherit;color:var(--text);background:#FAFAFA;outline:none;transition:border-color .2s;-webkit-appearance:none}
+    .fi:focus{border-color:var(--purple);background:#fff}
+    .btngrp{display:flex;flex-wrap:wrap;gap:7px}
+    .sbtn{padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:.78rem;cursor:pointer;color:var(--text2);font-weight:500;transition:all .15s}
+    .sbtn.a-health {border-color:var(--health-c);background:var(--health-bg);color:var(--health-c);font-weight:700}
+    .sbtn.a-hygiene{border-color:var(--hygiene-c);background:var(--hygiene-bg);color:var(--hygiene-c);font-weight:700}
+    .sbtn.a-work   {border-color:var(--work-c);background:var(--work-bg);color:var(--work-c);font-weight:700}
+    .sbtn.a-growth {border-color:var(--growth-c);background:var(--growth-bg);color:var(--growth-c);font-weight:700}
+    .sbtn.a-life   {border-color:var(--life-c);background:var(--life-bg);color:var(--life-c);font-weight:700}
+    .sbtn.a-p      {border-color:var(--purple);background:var(--purple-l);color:var(--purple);font-weight:700}
+    .mftr{display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:20px}
+    .bcancel{padding:13px;border:1.5px solid var(--border);border-radius:12px;background:#fff;font-size:.9rem;cursor:pointer;color:var(--text2)}
+    .bsave{padding:13px;border:none;border-radius:12px;background:var(--purple);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer}
+    .bdel{width:100%;padding:12px;border:1.5px solid #FEE2E2;border-radius:12px;background:#fff;color:#DC2626;font-size:.85rem;cursor:pointer;margin-top:10px}
+
+    /* ── Suggest feature ── */
+    .hdr-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .hdr-sugg{background:rgba(255,255,255,.2);border:none;color:#fff;padding:7px 13px;border-radius:10px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:2px;flex-shrink:0}
+    .sgcard{background:#fff;border-radius:14px;padding:13px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+    .sgbody{flex:1;min-width:0}
+    .sgttl{font-size:.88rem;font-weight:600;line-height:1.35;margin-bottom:4px}
+    .sgwhy{font-size:.7rem;color:var(--text2);line-height:1.45;margin-bottom:7px}
+    .sgmeta{display:flex;flex-wrap:wrap;gap:5px}
+    .sgadd{border:1.5px solid var(--purple);background:var(--purple-l);color:var(--purple);border-radius:9px;padding:7px 13px;font-size:.8rem;font-weight:700;cursor:pointer;flex-shrink:0;align-self:center;white-space:nowrap;transition:all .15s}
+    .sgadd.added{border-color:#D1D5DB;background:#F9FAFB;color:#9CA3AF;cursor:default;font-weight:500}
+    .suggest-btn-wrap{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px dashed #C4B5FD}
+    .suggest-btn-wrap .sb-ico{font-size:1.5rem}
+    .suggest-btn-wrap .sb-txt{flex:1}
+    .suggest-btn-wrap .sb-ttl{font-size:.9rem;font-weight:700;color:var(--purple)}
+    .suggest-btn-wrap .sb-sub{font-size:.72rem;color:var(--text2);margin-top:2px}
+
+    /* ── Pause badge / toggle ── */
+    .pbadge{font-size:.66rem;padding:2px 7px;border-radius:8px;font-weight:600;background:#FEF9C3;color:#92400E}
+    .pause-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border:1.5px solid var(--border);border-radius:11px;background:#FAFAFA;cursor:pointer}
+    .pause-toggle-lbl{font-size:.9rem;color:var(--text)}
+    .pause-sw{width:44px;height:24px;border-radius:12px;background:#E5E7EB;position:relative;transition:background .2s;flex-shrink:0}
+    .pause-sw::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .pause-sw.on{background:#F59E0B}
+    .pause-sw.on::after{transform:translateX(20px)}
+    .pause-note{font-size:.7rem;color:var(--text2);margin-top:6px;line-height:1.4;display:none}
+    .pause-note.show{display:block}
+
+    @media(min-width:600px){
+      .scroll{max-width:560px;margin:0 auto;padding-left:0;padding-right:0}
+      .ov{align-items:center}
+      .sheet{border-radius:22px;max-width:480px;margin:auto;padding-bottom:28px}
+      .fab{right:calc(50% - 260px)}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ TODAY ══ -->
+<div id="v-today" class="view active">
+  <div id="todayHdr" class="vhdr"></div>
+  <div id="todayBody" class="scroll"></div>
+</div>
+
+<!-- ══ HABITS ══ -->
+<div id="v-habits" class="view">
+  <div class="vhdr" style="padding-bottom:16px">
+    <div class="hdr-row">
+      <div>
+        <div class="htitle">習慣トラッカー 🔥</div>
+        <div class="hsub">継続は力なり — 毎日の積み重ねを大切に</div>
+      </div>
+      <button class="hdr-sugg" onclick="openSuggestOv()">💡 おすすめ</button>
+    </div>
+  </div>
+  <div id="habitsBody" class="scroll"></div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bnav">
+  <button class="nbtn on" id="nb-today"  onclick="go('today')"><span class="nico">🏠</span><span class="nlbl">今日</span></button>
+  <button class="nbtn"    id="nb-habits" onclick="go('habits')"><span class="nico">🔥</span><span class="nlbl">習慣</span></button>
+</nav>
+
+<button class="fab" onclick="openAddH()">＋</button>
+
+<!-- ══ HABIT FORM ══ -->
+<div class="ov" id="ov-habit">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="shandle"></div>
+    <h2 id="hHdr">習慣を追加</h2>
+    <form id="hForm" onsubmit="saveHabit(event)">
+      <input type="hidden" id="hId">
+      <div class="fg"><label class="fl">習慣のタイトル *</label>
+        <input class="fi" id="hTit" type="text" placeholder="例: シャワーを浴びる" required autocomplete="off"></div>
+      <div class="fg"><label class="fl">カテゴリ</label>
+        <div class="btngrp" id="hCats">
+          <button type="button" class="sbtn" data-c="health"  onclick="pickHCat('health')">🏃 健康</button>
+          <button type="button" class="sbtn" data-c="hygiene" onclick="pickHCat('hygiene')">🧼 清潔感</button>
+          <button type="button" class="sbtn" data-c="work"    onclick="pickHCat('work')">💼 仕事</button>
+          <button type="button" class="sbtn" data-c="growth"  onclick="pickHCat('growth')">📚 自己成長</button>
+          <button type="button" class="sbtn" data-c="life"    onclick="pickHCat('life')">🏠 生活</button>
+        </div></div>
+      <div class="fg"><label class="fl">時間帯</label>
+        <div class="btngrp" id="hTimes">
+          <button type="button" class="sbtn a-p" data-t="morning"   onclick="pickHTime('morning')">🌅 朝</button>
+          <button type="button" class="sbtn"     data-t="afternoon" onclick="pickHTime('afternoon')">☀️ 昼</button>
+          <button type="button" class="sbtn"     data-t="evening"   onclick="pickHTime('evening')">🌙 夜</button>
+          <button type="button" class="sbtn"     data-t="anytime"   onclick="pickHTime('anytime')">🕐 いつでも</button>
+        </div></div>
+      <div class="fg"><label class="fl">頻度</label>
+        <div class="btngrp" id="hFreqs">
+          <button type="button" class="sbtn a-p" data-f="daily"    onclick="pickHFreq('daily')">📅 毎日</button>
+          <button type="button" class="sbtn"     data-f="weekdays" onclick="pickHFreq('weekdays')">🗓 平日</button>
+          <button type="button" class="sbtn"     data-f="weekends" onclick="pickHFreq('weekends')">🎌 週末</button>
+        </div></div>
+      <div class="fg">
+        <label class="fl">一時停止</label>
+        <div class="pause-toggle" onclick="toggleHPause()">
+          <span class="pause-toggle-lbl">この習慣を一時停止する</span>
+          <div class="pause-sw" id="hPauseSw"></div>
+        </div>
+        <div class="pause-note" id="hPauseNote">⏸ 一時停止中は今日ビューに表示されません。ストリークは保持されます。</div>
+      </div>
+      <div class="mftr">
+        <button type="button" class="bcancel" onclick="closeHOv()">キャンセル</button>
+        <button type="submit" class="bsave">保存する</button>
+      </div>
+      <button type="button" class="bdel" id="hDel" style="display:none" onclick="delHabit()">🗑 この習慣を削除する</button>
+    </form>
+  </div>
+</div>
+<script>document.getElementById('ov-habit').addEventListener('click',function(e){if(e.target===this)closeHOv()})</script>
+
+<!-- ══ SUGGEST OVERLAY ══ -->
+<div class="ov" id="ov-suggest">
+  <div class="sheet" onclick="event.stopPropagation()" style="padding-bottom:calc(32px + var(--safe-b))">
+    <div class="shandle"></div>
+    <h2>💡 科学的根拠に基づく おすすめ習慣</h2>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:18px;line-height:1.5">
+      睡眠科学・神経科学・ポジティブ心理学などの研究に基づいたプリセット習慣です。<br>タップするだけで即追加できます。
+    </p>
+    <div id="suggestBody"></div>
+    <button class="bcancel" style="width:100%;margin-top:8px" onclick="closeSuggestOv()">閉じる</button>
+  </div>
+</div>
+<script>document.getElementById('ov-suggest').addEventListener('click',function(e){if(e.target===this)closeSuggestOv()})</script>
+
+<script>
+// ── Suggested habits (science-backed) ──
+const SUGGESTED = [
+  // 🏃 健康
+  { title:'起床後30分以内に日光を浴びる', cat:'health', time:'morning', freq:'daily',
+    why:'コルチゾールを適切なタイミングで分泌させ体内時計をリセット。夜のメラトニン分泌も改善（Huberman研究）' },
+  { title:'毎日同じ時間に起床する', cat:'health', time:'morning', freq:'daily',
+    why:'概日リズムを安定させる最重要因子。睡眠の質・日中の集中力が顕著に向上（睡眠科学の総意）' },
+  { title:'有酸素運動30分（速歩き・ジョギング）', cat:'health', time:'morning', freq:'daily',
+    why:'BDNF（脳由来神経栄養因子）が増加し記憶力・学習力が向上。心臓病リスク35%低減（複数RCT）' },
+  { title:'筋力トレーニング', cat:'health', time:'evening', freq:'weekdays',
+    why:'筋肉量は長寿の最強指標。基礎代謝向上・骨密度維持・インスリン感受性改善（Peter Attia）' },
+  { title:'1日8,000歩以上歩く', cat:'health', time:'anytime', freq:'daily',
+    why:'全死因死亡率を最大51%低減。8,000〜10,000歩が最適（JAMA Internal Medicine 2021）' },
+  { title:'就寝1時間前にスマホをやめる', cat:'health', time:'evening', freq:'daily',
+    why:'ブルーライトがメラトニン分泌を90分遅延。睡眠の質・深睡眠が著しく改善（Matthew Walker研究）' },
+  { title:'水を2リットル飲む', cat:'health', time:'anytime', freq:'daily',
+    why:'脱水わずか−2%で認知機能・集中力・気分が有意に低下。代謝・解毒機能にも必須' },
+  { title:'就寝・起床時刻を一定にする（7〜9時間確保）', cat:'health', time:'evening', freq:'daily',
+    why:'睡眠不足は免疫・記憶・メンタル・代謝に壊滅的影響。7時間未満で死亡率が上昇（Walker）' },
+  // 🧼 清潔感
+  { title:'毎日シャワーを浴びる', cat:'hygiene', time:'morning', freq:'daily',
+    why:'体臭・清潔感の基本。自己肯定感の向上、コルチゾール低下効果も報告されている' },
+  { title:'歯磨き＋デンタルフロス（夜）', cat:'hygiene', time:'evening', freq:'daily',
+    why:'歯周病菌が心臓病・アルツハイマー病リスクを高める。フロスで歯間を清掃しないと歯垢除去率40%止まり' },
+  { title:'朝のスキンケア（保湿＋日焼け止め）', cat:'hygiene', time:'morning', freq:'daily',
+    why:'UV被ばくが肌老化の80%以上の原因。日焼け止めは最も費用対効果の高いアンチエイジング施策' },
+  { title:'翌日の服を夜に選んで準備する', cat:'hygiene', time:'evening', freq:'daily',
+    why:'意思決定疲れ（Decision Fatigue）を防ぎ、朝の判断力・自制心を温存できる（Baumeister研究）' },
+  { title:'部屋を5分片付ける（朝）', cat:'hygiene', time:'morning', freq:'daily',
+    why:'散らかった環境がコルチゾールを持続的に上昇させストレスを慢性化させる（Princeton神経科学研究所）' },
+  // 📚 自己成長
+  { title:'瞑想・マインドフルネス 10分', cat:'growth', time:'morning', freq:'daily',
+    why:'8週間のMBSRで扁桃体が縮小し前頭前皮質が厚くなる。ストレス・不安・抑うつを有意に改善（Harvard）' },
+  { title:'読書30分', cat:'growth', time:'evening', freq:'daily',
+    why:'認知予備力を高め認知症リスクを低減。週3.5時間の読書で死亡率17%低下（Yale大学）' },
+  { title:'感謝日記（今日良かった3つを書く）', cat:'growth', time:'evening', freq:'daily',
+    why:'幸福度・楽観性・人間関係の質を長期的に向上。神経回路レベルでポジティブ感情を強化（Seligman）' },
+  { title:'一日の振り返り日記', cat:'growth', time:'evening', freq:'daily',
+    why:'感情処理・自己認識力向上。書くことでストレスを客観化し問題解決力が上がる（Pennebaker研究）' },
+  { title:'新しいスキルを15分学ぶ', cat:'growth', time:'anytime', freq:'daily',
+    why:'神経可塑性を持続的に維持。成長マインドセット形成と自己効力感の向上（Dweck・Bandura研究）' },
+  // 💼 仕事
+  { title:'その日の最重要タスクを午前中に終わらせる', cat:'work', time:'morning', freq:'weekdays',
+    why:'意志力・認知資源は起床後に最大化し時間とともに枯渇する。午前の深い仕事が生産性を決める（Newport）' },
+  { title:'90分の集中作業ブロックを設ける', cat:'work', time:'morning', freq:'weekdays',
+    why:'ウルトラディアンリズム（90分集中サイクル）に同期した作業が最も効率的（Kleitman研究）' },
+  { title:'メールは時間を決めてまとめてチェック', cat:'work', time:'afternoon', freq:'weekdays',
+    why:'タスク切り替え後の集中回復に平均23分かかる。注意残余（Attention Residue）を防ぐ（Gloria Mark）' },
+  // 🍽 食事（健康カテゴリ）
+  { title:'毎食に野菜・たんぱく質を入れる', cat:'health', time:'anytime', freq:'daily',
+    why:'野菜+たんぱく質の組み合わせが血糖値を安定させ、集中力・体型管理・肌質に直結する（栄養疫学）' },
+  { title:'加工食品・甘い飲料を避ける', cat:'health', time:'anytime', freq:'daily',
+    why:'超加工食品は腸内環境を乱しうつ・肥満・肌荒れリスクを高める。砂糖入り飲料は最も不健康なカロリー源（Harvard研究）' },
+  { title:'就寝3時間前は食事をしない', cat:'health', time:'evening', freq:'daily',
+    why:'夜遅い食事が深睡眠を妨げ成長ホルモン分泌を阻害。体脂肪蓄積にも直結（時間栄養学）' },
+  { title:'よく噛んでゆっくり食べる（20分以上）', cat:'health', time:'anytime', freq:'daily',
+    why:'満腹シグナルが脳に届くまで20分かかる。早食いは過食の最大要因。消化吸収率も向上（大阪大学研究）' },
+  { title:'水か無糖飲料だけで過ごす', cat:'health', time:'anytime', freq:'daily',
+    why:'ジュース・甘いコーヒーを水に置き換えるだけで年間数万kcal削減。肌・歯・内臓に広く好影響' },
+  // 🏠 生活
+  { title:'起きたらすぐベッドを整える', cat:'life', time:'morning', freq:'daily',
+    why:'小さな達成感が自律心と生産性の連鎖を生むキーストーン習慣。McRaven将軍のスピーチでも有名' },
+  { title:'夜に翌日のToDoリストを書く', cat:'life', time:'evening', freq:'daily',
+    why:'未完了タスクへの執着（Zeigarnik効果）を解消し脳を休ませ睡眠の質を高める（Baylor大学研究）' },
+  { title:'週1回の部屋の掃除・整頓', cat:'life', time:'anytime', freq:'weekends',
+    why:'清潔な住環境はアレルギー低減・精神的安定・自己効力感の維持に科学的に寄与する' },
+];
+
+// ── Constants ──
+const CATS = {
+  health:  {l:'健康',    e:'🏃'},
+  hygiene: {l:'清潔感',  e:'🧼'},
+  work:    {l:'仕事',    e:'💼'},
+  growth:  {l:'自己成長',e:'📚'},
+  life:    {l:'生活',    e:'🏠'},
+};
+const TIMES = {
+  morning:  {l:'朝',       e:'🌅', o:0},
+  afternoon:{l:'昼',       e:'☀️', o:1},
+  evening:  {l:'夜',       e:'🌙', o:2},
+  anytime:  {l:'いつでも', e:'🕐', o:3},
+};
+const FREQS = {daily:'毎日', weekdays:'平日', weekends:'週末'};
+const MOTIV = [
+  'さあ、今日も一歩ずつ進みましょう！',
+  '良いスタートです！この調子で💪',
+  '順調！良いリズムを保っています✨',
+  '折り返し点！後半も頑張ろう！',
+  'もう少しです！完走しよう🏁',
+  '全完了！今日も本当によく頑張りました🎉',
+];
+
+// ── State ──
+let habits = JSON.parse(localStorage.getItem('li_h') || '[]');
+let nid    = parseInt(localStorage.getItem('li_id') || '1');
+let curView = 'today';
+let hCat='', hTime='morning', hFreq='daily', hPaused=false;
+
+function persist() {
+  localStorage.setItem('li_h',  JSON.stringify(habits));
+  localStorage.setItem('li_id', String(nid));
+}
+
+// ── Date helpers ──
+function td() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function isDayApplicable(freq, dow) {
+  if (freq==='weekdays') return dow>=1 && dow<=5;
+  if (freq==='weekends') return dow===0 || dow===6;
+  return true;
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function dueToday(h) { return !h.paused && isDayApplicable(h.frequency, new Date().getDay()); }
+function doneToday(h) { return (h.completedDates||[]).includes(td()); }
+
+function streak(h) {
+  const set = new Set(h.completedDates||[]);
+  if (!set.size) return 0;
+  const todayStr = td();
+  const pausedSince = h.paused ? (h.pausedSince || todayStr) : null;
+  let count = 0;
+  const d = new Date();
+  for (let i=0; i<730; i++) {
+    const s = toDateStr(d);
+    if (pausedSince && s >= pausedSince) { d.setDate(d.getDate()-1); continue; }
+    if (!isDayApplicable(h.frequency, d.getDay())) { d.setDate(d.getDate()-1); continue; }
+    if (set.has(s)) {
+      count++;
+    } else if (s === todayStr) {
+      // grace period — day is not over yet
+    } else {
+      break;
+    }
+    d.setDate(d.getDate()-1);
+  }
+  return count;
+}
+
+function streakBdg(n) {
+  if (!n) return '';
+  const cls = n>=30?'hot':n>=7?'warm':'';
+  return `<span class="streak ${cls}">🔥 ${n}日連続</span>`;
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  if (h>=5  && h<11) return 'おはようございます 🌅';
+  if (h>=11 && h<17) return 'お疲れさまです ☀️';
+  if (h>=17 && h<22) return 'こんばんは 🌙';
+  return 'お疲れさまです ✨';
+}
+
+// ── Navigation ──
+function go(view) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById(`v-${view}`).classList.add('active');
+  document.getElementById(`nb-${view}`).classList.add('on');
+  curView = view;
+  render(view);
+}
+
+function render(v) {
+  if (v==='today')  renderToday();
+  else              renderHabits();
+}
+
+// ── TODAY ──
+function renderToday() {
+  const t = td();
+  const due  = habits.filter(dueToday);
+  const total = due.length;
+  const done  = due.filter(doneToday).length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  const motI  = Math.min(Math.floor(pct/20), 5);
+
+  const d = new Date();
+  const WD = ['日','月','火','水','木','金','土'];
+  document.getElementById('todayHdr').innerHTML = `
+    <div class="greet">${greeting()}</div>
+    <div class="htitle">${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日(${WD[d.getDay()]})</div>
+    <div class="hsub">${MOTIV[motI]}</div>
+    <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%"></div></div>
+    <div class="prog-txt"><span>${done} / ${total} 完了</span><span>${pct}%</span></div>`;
+
+  const bestS = habits.length ? Math.max(0, ...habits.map(streak)) : 0;
+  let html = `<div class="sumrow">
+    <div class="sumcard"><div class="snum" style="color:var(--purple)">${pct}<span style="font-size:1rem">%</span></div><div class="slbl">今日の達成率</div></div>
+    <div class="sumcard"><div class="snum" style="color:#DC2626">🔥${bestS}</div><div class="slbl">最長連続記録</div></div>
+  </div>`;
+
+  if (!total) {
+    html += `<div class="empty"><div class="eico">✨</div><p>今日の習慣がありません<br>＋ボタンで習慣を追加しましょう</p></div>`;
+    document.getElementById('todayBody').innerHTML = html;
+    return;
+  }
+
+  for (const key of ['morning','afternoon','evening','anytime']) {
+    const hh = due.filter(h=>(h.timeOfDay||'anytime')===key);
+    if (!hh.length) continue;
+    const T = TIMES[key];
+    html += `<div class="sec"><div class="sectitle">${T.e} ${T.l}</div>`;
+    for (const h of hh) {
+      const dn = doneToday(h), cat = h.category||'life', s = streak(h);
+      html += `<div class="icard cat-${cat}${dn?' done-card':''}">
+        <div class="chk${dn?' on':''}" onclick="togH(${h.id})"></div>
+        <div class="cbar"></div>
+        <div class="ibody">
+          <div class="ititle">${esc(h.title)}</div>
+          <div class="imeta"><span class="bdg catbdg">${CATS[cat].e} ${CATS[cat].l}</span>${streakBdg(s)}</div>
+        </div>
+        <div class="iacts"><button class="abtn" onclick="editH(${h.id})">✏️</button></div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('todayBody').innerHTML = html;
+}
+
+// ── HABITS ──
+function renderHabits() {
+  const suggestCard = `<div class="suggest-btn-wrap" onclick="openSuggestOv()">
+    <div class="sb-ico">💡</div>
+    <div class="sb-txt">
+      <div class="sb-ttl">科学的根拠に基づくおすすめ習慣</div>
+      <div class="sb-sub">睡眠・運動・マインドフルネスなど ${SUGGESTED.length}種類 — タップして即追加</div>
+    </div>
+    <span style="color:var(--purple);font-size:1.1rem">›</span>
+  </div>`;
+
+  if (!habits.length) {
+    document.getElementById('habitsBody').innerHTML = suggestCard + `<div class="empty" style="padding-top:24px"><div class="eico">🔁</div><p>まだ習慣がありません<br>上のおすすめから追加するか<br>＋ボタンで自由に追加できます</p></div>`;
+    return;
+  }
+
+  let html = suggestCard;
+  for (const cat of Object.keys(CATS)) {
+    const list = habits.filter(h=>(h.category||'life')===cat);
+    if (!list.length) continue;
+    html += `<div class="sec"><div class="sectitle">${CATS[cat].e} ${CATS[cat].l}</div>`;
+    for (const h of list) {
+      const dn=doneToday(h), due=dueToday(h), s=streak(h);
+      const col = s>=7?'#DC2626':s>=1?'#F59E0B':'#9CA3AF';
+      const statusTxt = h.paused?'⏸ 一時停止中':!due?'今日は対象外':dn?'✅ 完了':'未完了';
+      html += `<div class="hcard cat-${cat}">
+        <div class="hcard-top">
+          <div class="hico">${CATS[cat].e}</div>
+          <div class="hinfo">
+            <div class="hname">${esc(h.title)}</div>
+            <div class="hmeta">${FREQS[h.frequency]||'毎日'} · ${TIMES[h.timeOfDay||'anytime'].l} · ${statusTxt}</div>
+          </div>
+          <div class="hstreak">
+            <div class="sn" style="color:${col}">${s>0?'🔥':' '}${s}</div>
+            <div class="sl">連続日数</div>
+          </div>
+          <div class="iacts">
+            <button class="abtn" onclick="togH(${h.id})" title="${dn?'取り消し':'完了にする'}">${dn?'↩':'✓'}</button>
+            <button class="abtn" onclick="editH(${h.id})">✏️</button>
+          </div>
+        </div>
+        ${renderHabitCal(h)}
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('habitsBody').innerHTML = html;
+}
+
+// ── TOGGLE ──
+function togH(id) {
+  const h = habits.find(h=>h.id===id);
+  if (!h) return;
+  const t = td();
+  h.completedDates = h.completedDates||[];
+  const i = h.completedDates.indexOf(t);
+  if (i>=0) h.completedDates.splice(i,1); else h.completedDates.push(t);
+  persist();
+  render(curView);
+}
+
+// ── HABIT FORM ──
+function setHPauseUI(val) {
+  hPaused = val;
+  document.getElementById('hPauseSw').classList.toggle('on', val);
+  document.getElementById('hPauseNote').classList.toggle('show', val);
+}
+function toggleHPause() { setHPauseUI(!hPaused); }
+
+function openAddH() {
+  document.getElementById('hId').value = '';
+  document.getElementById('hHdr').textContent = '習慣を追加';
+  document.getElementById('hForm').reset();
+  hCat=''; hTime='morning'; hFreq='daily';
+  syncSbtn('hCats', 'c', null);
+  syncSbtn('hTimes', 't', 'morning');
+  syncSbtn('hFreqs', 'f', 'daily');
+  setHPauseUI(false);
+  document.getElementById('hDel').style.display = 'none';
+  document.getElementById('ov-habit').classList.add('open');
+  setTimeout(()=>document.getElementById('hTit').focus(), 120);
+}
+function editH(id) {
+  const h = habits.find(h=>h.id===id);
+  if (!h) return;
+  document.getElementById('hId').value = id;
+  document.getElementById('hHdr').textContent = '習慣を編集';
+  document.getElementById('hTit').value = h.title;
+  hCat=h.category||''; hTime=h.timeOfDay||'morning'; hFreq=h.frequency||'daily';
+  syncSbtn('hCats', 'c', hCat);
+  syncSbtn('hTimes', 't', hTime);
+  syncSbtn('hFreqs', 'f', hFreq);
+  setHPauseUI(!!h.paused);
+  document.getElementById('hDel').style.display = 'block';
+  document.getElementById('ov-habit').classList.add('open');
+}
+function closeHOv() { document.getElementById('ov-habit').classList.remove('open'); }
+
+function saveHabit(e) {
+  e.preventDefault();
+  const id = document.getElementById('hId').value;
+  const title = document.getElementById('hTit').value.trim();
+  const pausedSince = hPaused ? (
+    habits.find(h=>h.id===parseInt(id||'0'))?.pausedSince || td()
+  ) : null;
+  if (id) {
+    const h = habits.find(h=>h.id===parseInt(id));
+    if (h) Object.assign(h, {title, category:hCat||null, timeOfDay:hTime, frequency:hFreq, paused:hPaused, pausedSince});
+  } else {
+    habits.push({id:nid++, title, category:hCat||null, timeOfDay:hTime, frequency:hFreq, paused:hPaused, pausedSince, completedDates:[], createdAt:new Date().toISOString()});
+  }
+  persist();
+  closeHOv();
+  render(curView);
+}
+function delHabit() {
+  if (!confirm('この習慣を削除しますか？')) return;
+  const id = parseInt(document.getElementById('hId').value);
+  habits = habits.filter(h=>h.id!==id);
+  persist();
+  closeHOv();
+  render(curView);
+}
+
+// ── Form select helpers ──
+function syncSbtn(cid, attr, val) {
+  document.querySelectorAll(`#${cid} .sbtn`).forEach(b => {
+    const v = b.dataset.c || b.dataset.t || b.dataset.f;
+    b.className = 'sbtn' + (v===val ? ` a-${['morning','afternoon','evening','anytime','daily','weekdays','weekends'].includes(val)?'p':val}` : '');
+  });
+}
+function pickHCat(v)  { hCat=v;   document.querySelectorAll('#hCats  .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.c===v?` a-${v}`:'')}); }
+function pickHTime(v) { hTime=v;  document.querySelectorAll('#hTimes .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.t===v?' a-p':'')}); }
+function pickHFreq(v) { hFreq=v;  document.querySelectorAll('#hFreqs .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.f===v?' a-p':'')}); }
+
+// ── Habit calendar heatmap (5 weeks) ──
+function renderHabitCal(h) {
+  const set = new Set(h.completedDates||[]);
+  const todayStr = td();
+  const start = new Date();
+  start.setDate(start.getDate()-34);
+
+  const DAY_LABELS = ['日','月','火','水','木','金','土'];
+  const headers = DAY_LABELS.map(l=>`<div class="hch">${l}</div>`).join('');
+
+  let cells = '';
+  const padCount = start.getDay();
+  for (let p=0; p<padCount; p++) cells += `<div class="hcd hcd-na"></div>`;
+
+  for (let i=0; i<35; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate()+i);
+    const s = toDateStr(d);
+    const isToday   = s===todayStr;
+    const isFuture  = s>todayStr;
+    const applicable = isDayApplicable(h.frequency, d.getDay());
+    let cls = 'hcd';
+    if      (isFuture || !applicable) cls += ' hcd-na';
+    else if (set.has(s))              cls += ' hcd-ok';
+    else                              cls += ' hcd-ms';
+    if (isToday) cls += ' hcd-td';
+    cells += `<div class="${cls}"></div>`;
+  }
+  return `<div class="hcal">${headers}${cells}</div>`;
+}
+
+// ── Suggest modal ──
+function openSuggestOv() {
+  renderSuggest();
+  document.getElementById('ov-suggest').classList.add('open');
+}
+function closeSuggestOv() {
+  document.getElementById('ov-suggest').classList.remove('open');
+}
+function renderSuggest() {
+  const addedTitles = new Set(habits.map(h=>h.title));
+  const byCat = {};
+  SUGGESTED.forEach((s,i) => {
+    if (!byCat[s.cat]) byCat[s.cat] = [];
+    byCat[s.cat].push({...s, idx:i});
+  });
+  let html = '';
+  for (const cat of Object.keys(CATS)) {
+    if (!byCat[cat]) continue;
+    html += `<div class="sec"><div class="sectitle">${CATS[cat].e} ${CATS[cat].l}</div>`;
+    for (const s of byCat[cat]) {
+      const done = addedTitles.has(s.title);
+      const timeLbl = TIMES[s.time]?.e + ' ' + TIMES[s.time]?.l || s.time;
+      const freqLbl = FREQS[s.freq] || s.freq;
+      html += `<div class="sgcard cat-${s.cat}">
+        <div class="cbar" style="min-height:40px"></div>
+        <div class="sgbody">
+          <div class="sgttl">${esc(s.title)}</div>
+          <div class="sgwhy">📖 ${esc(s.why)}</div>
+          <div class="sgmeta">
+            <span class="bdg" style="background:#F3F4F6;color:#374151">${timeLbl}</span>
+            <span class="bdg" style="background:#F3F4F6;color:#374151">📅 ${freqLbl}</span>
+          </div>
+        </div>
+        <button class="sgadd${done?' added':''}" onclick="addSuggested(${s.idx})" ${done?'disabled':''}>${done?'追加済み':'追加'}</button>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('suggestBody').innerHTML = html;
+}
+function addSuggested(idx) {
+  const s = SUGGESTED[idx];
+  if (!s) return;
+  if (habits.some(h=>h.title===s.title)) return;
+  habits.push({id:nid++, title:s.title, category:s.cat, timeOfDay:s.time, frequency:s.freq, completedDates:[], createdAt:new Date().toISOString()});
+  persist();
+  renderSuggest();
+  if (curView==='habits') renderHabits();
+  else renderToday();
+}
+
+// ── Init ──
+renderToday();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
