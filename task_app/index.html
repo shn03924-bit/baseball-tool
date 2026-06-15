@@ -206,6 +206,49 @@
     .suggest-btn-wrap .sb-ttl{font-size:.9rem;font-weight:700;color:var(--purple)}
     .suggest-btn-wrap .sb-sub{font-size:.72rem;color:var(--text2);margin-top:2px}
 
+    /* ── Stats ── */
+    .wchart{display:flex;align-items:flex-end;gap:5px;height:72px}
+    .wbar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+    .wbar-fill{width:100%;border-radius:4px 4px 0 0;min-height:3px;transition:height .3s}
+    .wbar-fill.cur{background:var(--purple)}
+    .wbar-fill.old{background:#C4B5FD}
+    .wbar-lbl{font-size:.54rem;color:var(--text2);text-align:center;margin-top:3px;white-space:nowrap}
+    .catbar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .catbar-row:last-child{margin-bottom:0}
+    .catbar-name{font-size:.78rem;min-width:72px;font-weight:500}
+    .catbar-wrap{flex:1;background:#F0F0F0;border-radius:6px;height:10px;overflow:hidden}
+    .catbar-fill{height:100%;border-radius:6px;transition:width .4s ease}
+    .cat-health  .catbar-fill{background:var(--health-c)}
+    .cat-hygiene .catbar-fill{background:var(--hygiene-c)}
+    .cat-work    .catbar-fill{background:var(--work-c)}
+    .cat-growth  .catbar-fill{background:var(--growth-c)}
+    .cat-life    .catbar-fill{background:var(--life-c)}
+    .catbar-pct{font-size:.75rem;font-weight:700;min-width:36px;text-align:right;color:var(--text2)}
+    .hrank{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid #F3F4F6}
+    .hrank:last-child{border-bottom:none;padding-bottom:0}
+    .hrank-num{font-size:.7rem;font-weight:800;color:var(--text2);min-width:20px;text-align:center}
+    .hrank-ico{font-size:1.1rem}
+    .hrank-body{flex:1;min-width:0}
+    .hrank-title{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hrank-bar-wrap{background:#F0F0F0;border-radius:4px;height:5px;margin-top:4px;overflow:hidden}
+    .hrank-bar{height:100%;border-radius:4px}
+    .cat-health  .hrank-bar{background:var(--health-c)}
+    .cat-hygiene .hrank-bar{background:var(--hygiene-c)}
+    .cat-work    .hrank-bar{background:var(--work-c)}
+    .cat-growth  .hrank-bar{background:var(--growth-c)}
+    .cat-life    .hrank-bar{background:var(--life-c)}
+    .hrank-pct{font-size:.78rem;font-weight:800;min-width:36px;text-align:right;color:var(--text)}
+    /* ── Pause badge ── */
+    .pbadge{font-size:.66rem;padding:2px 7px;border-radius:8px;font-weight:600;background:#FEF9C3;color:#92400E}
+    .pause-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border:1.5px solid var(--border);border-radius:11px;background:#FAFAFA;cursor:pointer}
+    .pause-toggle-lbl{font-size:.9rem;color:var(--text)}
+    .pause-sw{width:44px;height:24px;border-radius:12px;background:#E5E7EB;position:relative;transition:background .2s;flex-shrink:0}
+    .pause-sw::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .pause-sw.on{background:#F59E0B}
+    .pause-sw.on::after{transform:translateX(20px)}
+    .pause-note{font-size:.7rem;color:var(--text2);margin-top:6px;line-height:1.4;display:none}
+    .pause-note.show{display:block}
+
     @media(min-width:600px){
       .scroll{max-width:560px;margin:0 auto;padding-left:0;padding-right:0}
       .ov{align-items:center}
@@ -245,10 +288,20 @@
   <div id="tasksBody" class="scroll"></div>
 </div>
 
+<!-- ══ STATS ══ -->
+<div id="v-stats" class="view">
+  <div class="vhdr" style="padding-bottom:16px">
+    <div class="htitle">統計 & データ管理 📊</div>
+    <div class="hsub">継続の軌跡を確認して次へつなげよう</div>
+  </div>
+  <div id="statsBody" class="scroll"></div>
+</div>
+
 <!-- Bottom Nav -->
 <nav class="bnav">
   <button class="nbtn on" id="nb-today"  onclick="go('today')"><span class="nico">🏠</span><span class="nlbl">今日</span></button>
   <button class="nbtn"    id="nb-habits" onclick="go('habits')"><span class="nico">🔥</span><span class="nlbl">習慣</span></button>
+  <button class="nbtn"    id="nb-stats"  onclick="go('stats')"><span class="nico">📊</span><span class="nlbl">統計</span></button>
   <button class="nbtn"    id="nb-tasks"  onclick="go('tasks')"><span class="nico">📋</span><span class="nlbl">タスク</span></button>
 </nav>
 
@@ -303,6 +356,14 @@
           <button type="button" class="sbtn"     data-f="weekdays" onclick="pickHFreq('weekdays')">🗓 平日</button>
           <button type="button" class="sbtn"     data-f="weekends" onclick="pickHFreq('weekends')">🎌 週末</button>
         </div></div>
+      <div class="fg">
+        <label class="fl">一時停止</label>
+        <div class="pause-toggle" onclick="toggleHPause()">
+          <span class="pause-toggle-lbl">この習慣を一時停止する</span>
+          <div class="pause-sw" id="hPauseSw"></div>
+        </div>
+        <div class="pause-note" id="hPauseNote">⏸ 一時停止中は今日ビューに表示されません。ストリークは保持されます。</div>
+      </div>
       <div class="mftr">
         <button type="button" class="bcancel" onclick="closeHOv()">キャンセル</button>
         <button type="submit" class="bsave">保存する</button>
@@ -456,7 +517,7 @@ let habits = JSON.parse(localStorage.getItem('li_h') || '[]');
 let tasks  = JSON.parse(localStorage.getItem('li_t') || '[]');
 let nid    = parseInt(localStorage.getItem('li_id')  || '1');
 let curView = 'today';
-let hCat='', hTime='morning', hFreq='daily';
+let hCat='', hTime='morning', hFreq='daily', hPaused=false;
 let tCat='', tTime='anytime', tPrio='medium';
 
 function persist() {
@@ -481,20 +542,22 @@ function isDayApplicable(freq, dow) {
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtDate(s){ const d=new Date(s+'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; }
 
-function dueToday(h) { return isDayApplicable(h.frequency, new Date().getDay()); }
+function dueToday(h) { return !h.paused && isDayApplicable(h.frequency, new Date().getDay()); }
 function doneToday(h) { return (h.completedDates||[]).includes(td()); }
 
 function streak(h) {
   const set = new Set(h.completedDates||[]);
   if (!set.size) return 0;
   const todayStr = td();
+  const pausedSince = h.paused ? (h.pausedSince || todayStr) : null;
   let count = 0;
   const d = new Date();
   for (let i=0; i<730; i++) {
     const s = toDateStr(d);
-    if (!isDayApplicable(h.frequency, d.getDay())) {
-      d.setDate(d.getDate()-1); continue;   // 対象外の曜日はスキップ
-    }
+    // 一時停止期間はスキップ（ストリーク保持）
+    if (pausedSince && s >= pausedSince) { d.setDate(d.getDate()-1); continue; }
+    // 対象外の曜日はスキップ
+    if (!isDayApplicable(h.frequency, d.getDay())) { d.setDate(d.getDate()-1); continue; }
     if (set.has(s)) {
       count++;
     } else if (s === todayStr) {
@@ -533,8 +596,9 @@ function go(view) {
 }
 
 function render(v) {
-  if (v==='today')  renderToday();
+  if (v==='today')   renderToday();
   else if(v==='habits') renderHabits();
+  else if(v==='stats')  renderStats();
   else renderTasks();
 }
 
@@ -631,7 +695,7 @@ function renderHabits() {
     for (const h of list) {
       const dn=doneToday(h), due=dueToday(h), s=streak(h);
       const col = s>=7?'#DC2626':s>=1?'#F59E0B':'#9CA3AF';
-      const statusTxt = !due?'今日は対象外':dn?'✅ 完了':'未完了';
+      const statusTxt = h.paused?'⏸ 一時停止中':!due?'今日は対象外':dn?'✅ 完了':'未完了';
       html += `<div class="hcard cat-${cat}">
         <div class="hcard-top">
           <div class="hico">${CATS[cat].e}</div>
@@ -725,12 +789,20 @@ function openTypeOv(){ closeAll(); document.getElementById('ov-type').classList.
 function typeToHabit(){ document.getElementById('ov-type').classList.remove('open'); openAddH(); }
 function typeToTask() { document.getElementById('ov-type').classList.remove('open'); openAddT(); }
 
+function setHPauseUI(val) {
+  hPaused = val;
+  document.getElementById('hPauseSw').classList.toggle('on', val);
+  document.getElementById('hPauseNote').classList.toggle('show', val);
+}
+function toggleHPause() { setHPauseUI(!hPaused); }
+
 function openAddH() {
   document.getElementById('hId').value='';
   document.getElementById('hHdr').textContent='習慣を追加';
   document.getElementById('hForm').reset();
   hCat=''; hTime='morning'; hFreq='daily';
   syncSbtn('hCats','',null); syncSbtn('hTimes','t','morning'); syncSbtn('hFreqs','f','daily');
+  setHPauseUI(false);
   document.getElementById('hDel').style.display='none';
   document.getElementById('ov-habit').classList.add('open');
   setTimeout(()=>document.getElementById('hTit').focus(),120);
@@ -742,6 +814,7 @@ function editH(id) {
   document.getElementById('hTit').value=h.title;
   hCat=h.category||''; hTime=h.timeOfDay||'morning'; hFreq=h.frequency||'daily';
   syncSbtn('hCats','c',hCat); syncSbtn('hTimes','t',hTime); syncSbtn('hFreqs','f',hFreq);
+  setHPauseUI(!!h.paused);
   document.getElementById('hDel').style.display='block';
   document.getElementById('ov-habit').classList.add('open');
 }
@@ -750,11 +823,14 @@ function saveHabit(e) {
   e.preventDefault();
   const id=document.getElementById('hId').value;
   const title=document.getElementById('hTit').value.trim();
+  const pausedSince = hPaused ? (
+    habits.find(h=>h.id===parseInt(id||'0'))?.pausedSince || td()
+  ) : null;
   if (id) {
     const h=habits.find(h=>h.id===parseInt(id));
-    if(h)Object.assign(h,{title,category:hCat||null,timeOfDay:hTime,frequency:hFreq});
+    if(h)Object.assign(h,{title,category:hCat||null,timeOfDay:hTime,frequency:hFreq,paused:hPaused,pausedSince});
   } else {
-    habits.push({id:nid++,title,category:hCat||null,timeOfDay:hTime,frequency:hFreq,completedDates:[],createdAt:new Date().toISOString()});
+    habits.push({id:nid++,title,category:hCat||null,timeOfDay:hTime,frequency:hFreq,paused:hPaused,pausedSince,completedDates:[],createdAt:new Date().toISOString()});
   }
   persist(); closeHOv(); render(curView);
 }
@@ -821,6 +897,182 @@ function pickTTime(v){tTime=v;document.querySelectorAll('#tTimes .sbtn').forEach
 function pickHFreq(v){hFreq=v;document.querySelectorAll('#hFreqs .sbtn').forEach(b=>{b.className='sbtn'+(b.dataset.f===v?' a-p':'')});}
 function pickPrio(v){tPrio=v;document.querySelectorAll('.pbtn').forEach(b=>{b.className='pbtn'+(b.dataset.p===v?` p${v[0]}`:'')})}
 function syncPrio(v){pickPrio(v);}
+
+// ── Stats calculations ──
+function calcHabitStats(days) {
+  const today = new Date(), todayStr = td();
+  const dates = [];
+  for (let i=days-1; i>=0; i--) {
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    dates.push(toDateStr(d));
+  }
+  return habits.map(h => {
+    const app = dates.filter(s => {
+      const dow = new Date(s+'T00:00:00').getDay();
+      return isDayApplicable(h.frequency, dow) && s <= todayStr;
+    });
+    const done = app.filter(s => (h.completedDates||[]).includes(s));
+    return {...h, app:app.length, done:done.length, rate:app.length?Math.round(done.length/app.length*100):0};
+  });
+}
+
+function calcWeeklyStats() {
+  const today = new Date(), todayStr = td();
+  return Array.from({length:8},(_,w)=>{
+    const idx = 7-w;  // idx=7→今週, idx=0→7週前
+    let app=0, done=0;
+    for (let day=6; day>=0; day--) {
+      const d=new Date(today); d.setDate(d.getDate()-idx*7-day);
+      const s=toDateStr(d);
+      if (s>todayStr) continue;
+      for (const h of habits) {
+        if (!h.paused && isDayApplicable(h.frequency, d.getDay())) {
+          app++;
+          if ((h.completedDates||[]).includes(s)) done++;
+        }
+      }
+    }
+    return {label:idx===0?'今週':`${idx}w前`, app, done, rate:app?Math.round(done/app*100):null};
+  }).reverse();
+}
+
+function renderStats() {
+  const todayStr = td();
+  const now = new Date();
+  const hs30 = calcHabitStats(30).sort((a,b)=>b.rate-a.rate);
+  const weeks = calcWeeklyStats();
+  const thisWeek = weeks[weeks.length-1];
+  const bestS = habits.length ? Math.max(0,...habits.map(streak)) : 0;
+  const doneTasksMonth = tasks.filter(t=>t.done && t.completedDate &&
+    new Date(t.completedDate+'T00:00:00').getMonth()===now.getMonth() &&
+    new Date(t.completedDate+'T00:00:00').getFullYear()===now.getFullYear()).length;
+
+  let html = '';
+
+  // Summary 2x2
+  html += `<div class="sumrow" style="grid-template-columns:1fr 1fr">
+    <div class="sumcard"><div class="snum" style="color:var(--purple)">${thisWeek.rate??'--'}<span style="font-size:1rem">%</span></div><div class="slbl">今週の達成率</div></div>
+    <div class="sumcard"><div class="snum" style="color:#DC2626">🔥${bestS}</div><div class="slbl">最長連続記録</div></div>
+    <div class="sumcard"><div class="snum" style="color:var(--growth-c)">${doneTasksMonth}</div><div class="slbl">今月完了タスク</div></div>
+    <div class="sumcard"><div class="snum" style="color:var(--hygiene-c)">${habits.filter(h=>!h.paused).length}</div><div class="slbl">有効な習慣数</div></div>
+  </div>`;
+
+  // Weekly trend
+  const maxH = 56; // px
+  html += `<div class="sec"><div class="sectitle">📈 週別達成率（過去8週）</div>
+    <div class="sumcard" style="padding:16px 14px 14px">
+      <div class="wchart">
+        ${weeks.map((w,i)=>{
+          const h = w.rate!=null ? Math.round(w.rate/100*maxH) : 0;
+          const isCur = i===weeks.length-1;
+          return `<div class="wbar">
+            <div class="wbar-fill ${isCur?'cur':'old'}" style="height:${h}px"></div>
+            <div class="wbar-lbl">${w.label}${w.rate!=null?`<br>${w.rate}%`:''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // Category bars
+  const catRows = Object.keys(CATS).map(cat=>{
+    const ch = hs30.filter(h=>(h.category||'life')===cat);
+    if (!ch.length) return null;
+    const totalApp = ch.reduce((s,h)=>s+h.app,0);
+    const totalDone = ch.reduce((s,h)=>s+h.done,0);
+    const rate = totalApp ? Math.round(totalDone/totalApp*100) : 0;
+    return {cat, rate};
+  }).filter(Boolean).sort((a,b)=>b.rate-a.rate);
+
+  if (catRows.length) {
+    html += `<div class="sec"><div class="sectitle">🗂 カテゴリ別達成率（30日）</div>
+      <div class="sumcard">
+        ${catRows.map(({cat,rate})=>`<div class="catbar-row cat-${cat}">
+          <div class="catbar-name">${CATS[cat].e} ${CATS[cat].l}</div>
+          <div class="catbar-wrap"><div class="catbar-fill" style="width:${rate}%"></div></div>
+          <div class="catbar-pct">${rate}%</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Habit ranking
+  if (hs30.length) {
+    html += `<div class="sec"><div class="sectitle">🏆 習慣ランキング（30日達成率）</div>
+      <div class="sumcard">
+        ${hs30.slice(0,8).map((h,i)=>{
+          const cat=h.category||'life';
+          return `<div class="hrank cat-${cat}">
+            <div class="hrank-num">#${i+1}</div>
+            <div class="hrank-ico">${CATS[cat].e}</div>
+            <div class="hrank-body">
+              <div class="hrank-title">${esc(h.title)}</div>
+              <div class="hrank-bar-wrap"><div class="hrank-bar" style="width:${h.rate}%"></div></div>
+            </div>
+            <div class="hrank-pct">${h.rate}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Data management
+  html += `<div class="sec"><div class="sectitle">💾 データ管理</div>
+    <div class="sumcard">
+      <p style="font-size:.78rem;color:var(--text2);margin-bottom:14px;line-height:1.5">
+        機種変更・ブラウザデータ削除に備えて定期的にバックアップしましょう。
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="bsave" style="background:var(--growth-c);font-size:.85rem" onclick="exportData()">📤 書き出し (JSON)</button>
+        <label class="bsave" style="background:#6B7280;font-size:.85rem;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;border-radius:12px">
+          📥 読み込み<input type="file" accept=".json" onchange="importData(event)" style="display:none">
+        </label>
+      </div>
+      <p style="font-size:.67rem;color:var(--text2);margin-top:10px;line-height:1.5">
+        ※ 読み込みは既存データに上書きされます。先に書き出しを行ってください。
+      </p>
+    </div>
+  </div>`;
+
+  if (!habits.length && !tasks.length) {
+    html = `<div class="empty"><div class="eico">📊</div><p>データがまだありません<br>習慣やタスクを追加すると<br>統計が表示されます</p></div>` + html;
+  }
+  document.getElementById('statsBody').innerHTML = html;
+}
+
+// ── Export / Import ──
+function exportData() {
+  const data = {version:1, exportDate:new Date().toISOString(), habits, tasks};
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `life-backup-${td()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.habits || !data.tasks) throw new Error('invalid format');
+      if (!confirm(`データを読み込みますか？\n習慣: ${data.habits.length}件 / タスク: ${data.tasks.length}件\n\n⚠️ 現在のデータは上書きされます`)) return;
+      habits = data.habits;
+      tasks  = data.tasks;
+      nid    = Math.max(1, ...[...habits,...tasks].map(x=>x.id+1), 1);
+      persist();
+      render(curView);
+      alert('読み込みが完了しました！');
+    } catch(err) {
+      alert('読み込みに失敗しました。正しいバックアップファイルか確認してください。');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
 
 // ── Habit calendar heatmap (5 weeks) ──
 function renderHabitCal(h) {
